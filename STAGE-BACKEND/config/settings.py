@@ -81,13 +81,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.oracle',
-        'NAME': os.getenv('ORACLE_DSN'),
-        'USER': os.getenv('ORACLE_USER'),
-        'PASSWORD': os.getenv('ORACLE_PASSWORD'),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'stage_inventaire_snel',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': 'localhost',
+        'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
-
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 

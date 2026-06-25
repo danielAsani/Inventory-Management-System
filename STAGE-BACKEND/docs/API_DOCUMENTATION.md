@@ -1,82 +1,38 @@
-# Documentation Backend - API Inventaire SNEL
+# Documentation API - Inventaire SNEL
 
-## 1. Présentation du projet
+## 1. URL de base
 
-Ce backend expose une API REST pour une application de gestion d'inventaire matériel et consommables de la SNEL.
-
-Il couvre les besoins principaux suivants :
-
-- gestion de l'organisation : départements, directions, services ;
-- gestion du catalogue : familles, catégories, unités de mesure, fournisseurs ;
-- gestion du stock : magasins, matériels, consommables ;
-- mouvements de stock : entrées, sorties, transferts ;
-- affectations de matériels ;
-- consommations de consommables ;
-- inventaires et détails d'inventaire ;
-- demandes ;
-- maintenance : entretiens et réparations ;
-- documents liés aux matériels ou consommables.
-
-## 2. Stack technique
-
-- Python
-- Django
-- Django REST Framework
-- Oracle Database
-- `oracledb`
-- SimpleJWT avec `djangorestframework-simplejwt`
-- `django-cors-headers`
-- `bleach` pour l'assainissement des champs texte
-- Cache Django `LocMemCache`
-
-## 3. Architecture du backend
-
-- `config/` : configuration Django, routes globales, settings.
-- `apps/core/` : éléments transversaux : authentification, permissions, pagination, cache, validators.
-- `apps/comptes/` : utilisateurs métier `USERS`, rôles `ROLE`, login JWT, profil connecté.
-- `apps/organisation/` : départements, directions, services.
-- `apps/catalogue/` : familles, catégories, unités de mesure, fournisseurs.
-- `apps/stock/` : magasins, matériels, consommables.
-- `apps/operations/` : mouvements de stock, affectations, consommations.
-- `apps/inventaires/` : inventaires et détails d'inventaire.
-- `apps/maintenance/` : entretiens et réparations.
-- `apps/demandes/` : demandes.
-- `apps/documents/` : documents.
-
-## 4. Base de données Oracle
-
-La base Oracle existe déjà dans le schéma `STAGE_INVENTAIRE_SNEL`.
-
-Les modèles Django viennent de `inspectdb` et restent en lecture de structure :
-
-```python
-class Meta:
-    managed = False
-```
-
-Conséquences importantes :
-
-- Django ne doit pas créer, modifier ou supprimer les tables métier Oracle.
-- Ne pas lancer de migrations pour les tables métier Oracle.
-- Les noms `db_table` et `db_column` doivent rester alignés avec Oracle.
-- Certains identifiants sont générés par Oracle avec `GENERATED ALWAYS AS IDENTITY`.
-- Le backend ne doit pas insérer manuellement les IDs générés automatiquement, par exemple `USERS.ID_USERS`.
-
-## 5. Authentification JWT
-
-L'authentification utilise SimpleJWT, mais avec la table métier Oracle `USERS`.
-
-Le backend n'utilise pas `auth_user` pour connecter les utilisateurs métier, et n'utilise pas `USER_ROLE`.
-
-Le rôle vient uniquement de :
+En développement, l'API est disponible sous :
 
 ```text
-USERS.ID_ROLE -> ROLE.ID_ROLE
+http://127.0.0.1:8000/api/
 ```
 
-### POST `/api/auth/login/`
+Toutes les routes décrites ci-dessous sont relatives à cette URL.
 
-Connecte un utilisateur avec son matricule ou son email.
+Exemple :
+
+```text
+GET http://127.0.0.1:8000/api/catalogue/categories/
+```
+
+## 2. Authentification
+
+L'API utilise une authentification JWT.
+
+Les endpoints protégés attendent le header suivant :
+
+```text
+Authorization: Bearer <access_token>
+```
+
+Sans token valide, l'accès est refusé.
+
+### Connexion
+
+```http
+POST /api/auth/login/
+```
 
 Body avec matricule :
 
@@ -100,8 +56,8 @@ Réponse réussie :
 
 ```json
 {
-  "access": "jwt_access_en_3_parties",
-  "refresh": "jwt_refresh_en_3_parties",
+  "access": "jwt_access",
+  "refresh": "jwt_refresh",
   "user": {
     "id_users": 1,
     "nom_users": "Administrateur SNEL",
@@ -109,7 +65,7 @@ Réponse réussie :
     "matricule": "ADMIN001",
     "telephone": "000000000",
     "role": "ADMIN",
-    "scope_type": "CENTRAL",
+    "scope_type": "GENERAL",
     "id_departement": null,
     "id_direction": null,
     "id_service": null,
@@ -118,29 +74,11 @@ Réponse réussie :
 }
 ```
 
-Erreurs possibles :
+### Rafraîchir le token
 
-```json
-{
-  "non_field_errors": ["Identifiants invalides."]
-}
+```http
+POST /api/auth/refresh/
 ```
-
-```json
-{
-  "non_field_errors": ["Utilisateur inactif."]
-}
-```
-
-```json
-{
-  "non_field_errors": ["Rôle utilisateur introuvable ou inactif."]
-}
-```
-
-### POST `/api/auth/refresh/`
-
-Génère un nouveau token `access` à partir d'un `refresh`.
 
 Body :
 
@@ -158,22 +96,10 @@ Réponse :
 }
 ```
 
-Erreur :
+### Profil connecté
 
-```json
-{
-  "non_field_errors": ["Token invalide ou expiré."]
-}
-```
-
-### GET `/api/auth/me/`
-
-Retourne l'utilisateur connecté.
-
-Header obligatoire :
-
-```text
-Authorization: Bearer <access_token>
+```http
+GET /api/auth/me/
 ```
 
 Réponse :
@@ -186,7 +112,7 @@ Réponse :
   "matricule": "ADMIN001",
   "telephone": "000000000",
   "role": "ADMIN",
-  "scope_type": "CENTRAL",
+  "scope_type": "GENERAL",
   "id_departement": null,
   "id_direction": null,
   "id_service": null,
@@ -194,10 +120,11 @@ Réponse :
 }
 ```
 
-### POST `/api/auth/logout/`
+### Déconnexion
 
-Avec JWT stateless, le backend ne stocke pas la session.
-Le frontend doit supprimer le token localement.
+```http
+POST /api/auth/logout/
+```
 
 Réponse :
 
@@ -207,57 +134,45 @@ Réponse :
 }
 ```
 
-## 6. Rôles et permissions
+Le backend ne stocke pas de session côté serveur pour cette déconnexion. Le client doit supprimer ses tokens localement.
 
-| Rôle | Description | Droits principaux |
-| --- | --- | --- |
-| ADMIN | Administrateur système | Accès complet |
-| GESTIONNAIRE | Gestion administrative de l'inventaire | Matériels, affectations, inventaires, demandes |
-| MAGASINIER | Gestion physique du stock | Mouvements, entrées, sorties, consommations |
-| AUDITEUR | Consultation | Lecture seule |
+## 3. Format des requêtes
 
-Règles générales :
+Les requêtes de création et de modification utilisent généralement le format JSON :
 
-- ADMIN peut tout faire.
-- GESTIONNAIRE ne gère pas les utilisateurs ni les rôles.
-- MAGASINIER ne gère pas les utilisateurs, les rôles ni l'organisation.
-- AUDITEUR est en lecture seule.
-- Sans token, l'accès est refusé.
-- Avec un mauvais rôle, l'accès est refusé côté backend.
+```text
+Content-Type: application/json
+```
 
-Messages fréquents :
+Exemple :
 
 ```json
 {
-  "detail": "Token manquant."
+  "code_categorie": "ORDI",
+  "nom_categorie": "Ordinateurs",
+  "description": "Matériel informatique",
+  "id_famille": 1,
+  "statut": true
 }
 ```
 
-```json
-{
-  "detail": "Token invalide ou expiré."
-}
-```
+## 4. Format des réponses
 
-```json
-{
-  "detail": "Vous n'avez pas la permission d'effectuer cette action."
-}
-```
-
-## 7. Format général des réponses
-
-Réponse de succès simple :
+### Réponse simple
 
 ```json
 {
   "id_role": 1,
+  "code_role": "ADMIN",
   "nom_role": "Administrateur",
-  "code_role": "ADMIN"
+  "description": "Accès complet",
+  "statut": true
 }
 ```
 
-Réponse paginée :
+### Réponse paginée
+
+Les listes utilisent une pagination commune :
 
 ```json
 {
@@ -269,41 +184,34 @@ Réponse paginée :
 }
 ```
 
-Erreurs possibles :
+## 5. Codes HTTP
 
-- `400 Bad Request` : données invalides, identifiants invalides, pagination invalide.
-- `403 Forbidden` : token manquant, token invalide, rôle insuffisant.
-- `404 Not Found` : ressource inexistante.
+| Code | Signification |
+| --- | --- |
+| `200 OK` | Requête réussie |
+| `201 Created` | Ressource créée |
+| `204 No Content` | Ressource supprimée |
+| `400 Bad Request` | Données invalides |
+| `403 Forbidden` | Token absent, invalide ou rôle insuffisant |
+| `404 Not Found` | Ressource inexistante |
+| `500 Internal Server Error` | Erreur serveur non gérée |
 
-## 8. Pagination
+## 6. Pagination
 
-Les endpoints de liste utilisent une pagination commune.
+Paramètres disponibles sur les endpoints de liste :
 
-Paramètres :
-
-- `page` : page demandée, défaut `1`.
-- `perpage` : nombre d'éléments par page, défaut `10`.
-- limite maximale : `50`.
+| Paramètre | Description | Défaut | Limite |
+| --- | --- | --- | --- |
+| `page` | Numéro de page | `1` | entier supérieur à 0 |
+| `perpage` | Nombre d'éléments par page | `10` | maximum `50` |
 
 Exemple :
 
-```text
-GET /api/catalogue/categories/?page=1&perpage=10
+```http
+GET /api/stock/materiels/?page=1&perpage=10
 ```
 
-Réponse :
-
-```json
-{
-  "count": 100,
-  "page": 1,
-  "perpage": 10,
-  "total_pages": 10,
-  "results": []
-}
-```
-
-Erreurs :
+Erreur si `page` n'est pas un entier :
 
 ```json
 {
@@ -311,69 +219,76 @@ Erreurs :
 }
 ```
 
+Erreur si `perpage` dépasse la limite :
+
 ```json
 {
   "detail": "Vous ne pouvez pas demander plus de 50 éléments par page."
 }
 ```
 
-## 9. Tri / ordering
+## 7. Tri, recherche et filtres
 
-Le cahier des charges prévoit un paramètre `order`.
+À l'état actuel du code, aucun backend global de recherche, de filtre ou de tri n'est configuré dans les ViewSets.
 
-Exemples attendus :
+Le paramètre `order` peut être prévu côté cahier des charges, mais il n'est pas appliqué globalement par les vues actuelles. Il doit être documenté endpoint par endpoint lorsqu'il sera réellement implémenté.
 
-```text
-GET /api/stock/materiels/?order=code_materiel
-GET /api/stock/materiels/?order=-date_achat
-GET /api/stock/materiels/?order=code_materiel,-date_achat
-```
+## 8. Rôles et règles d'accès
 
-À vérifier selon l'état exact des vues : si un backend d'ordering DRF n'est pas encore configuré, cette section devra être finalisée lors de l'ajout officiel du tri.
+Rôles utilisés :
 
-## 10. Filtrage et recherche
+| Rôle | Accès général |
+| --- | --- |
+| `ADMIN` | Toutes les actions |
+| `GESTIONNAIRE` | Actions de gestion selon les modules |
+| `MAGASINIER` | Actions de stock selon les modules |
+| `AUDITEUR` | Lecture seule |
 
-À compléter selon les filtres disponibles.
+Méthodes de lecture :
 
-Le projet peut évoluer vers :
+- `GET`
+- `HEAD`
+- `OPTIONS`
 
-- recherche par code matériel ;
-- recherche par numéro de série ;
-- filtrage par catégorie ;
-- filtrage par magasin ;
-- filtrage par statut ;
-- filtrage par date.
+Méthodes d'écriture :
 
-## 11. Liste des endpoints principaux
+- `POST`
+- `PUT`
+- `PATCH`
+- `DELETE`
 
-Les endpoints ci-dessous sont exposés via `DefaultRouter`.
+Si une action d'écriture n'est pas explicitement ouverte à un rôle dans le ViewSet, elle reste réservée à `ADMIN`.
 
-Pour chaque ressource ViewSet, les méthodes standard sont disponibles selon les permissions :
+## 9. Méthodes standard des ressources
 
-- `GET /ressource/` : liste ;
-- `POST /ressource/` : création ;
-- `GET /ressource/{id}/` : détail ;
-- `PUT /ressource/{id}/` : remplacement ;
-- `PATCH /ressource/{id}/` : modification partielle ;
-- `DELETE /ressource/{id}/` : suppression.
+Les ressources exposées par `ModelViewSet` suivent les routes standard :
 
-### Auth
+| Méthode | URL | Action |
+| --- | --- | --- |
+| `GET` | `/ressource/` | Liste paginée |
+| `POST` | `/ressource/` | Création |
+| `GET` | `/ressource/{id}/` | Détail |
+| `PUT` | `/ressource/{id}/` | Remplacement complet |
+| `PATCH` | `/ressource/{id}/` | Modification partielle |
+| `DELETE` | `/ressource/{id}/` | Suppression |
+
+## 10. Endpoints d'authentification
 
 | Méthode | URL | Description | Accès |
 | --- | --- | --- | --- |
-| POST | `/api/auth/login/` | Connexion JWT | Public |
-| POST | `/api/auth/refresh/` | Renouveler access token | Public avec refresh valide |
-| GET | `/api/auth/me/` | Profil connecté | Authentifié |
-| POST | `/api/auth/logout/` | Déconnexion côté frontend | Authentifié |
+| `POST` | `/api/auth/login/` | Connexion JWT | Public |
+| `POST` | `/api/auth/refresh/` | Renouvellement du token access | Public avec refresh valide |
+| `GET` | `/api/auth/me/` | Profil connecté | Authentifié |
+| `POST` | `/api/auth/logout/` | Déconnexion côté client | Authentifié |
 
-### Comptes
+## 11. Endpoints comptes
 
-| Ressource | URL | Rôles |
-| --- | --- | --- |
-| Users | `/api/comptes/users/` | ADMIN |
-| Roles | `/api/comptes/roles/` | ADMIN |
+| Ressource | URL | Lecture | Création | Modification | Suppression |
+| --- | --- | --- | --- | --- | --- |
+| Utilisateurs | `/api/comptes/users/` | `ADMIN`, `AUDITEUR` | `ADMIN` | `ADMIN` | `ADMIN` |
+| Rôles | `/api/comptes/roles/` | `ADMIN`, `AUDITEUR` | `ADMIN` | `ADMIN` | `ADMIN` |
 
-Exemple création utilisateur :
+Exemple de création d'utilisateur :
 
 ```json
 {
@@ -384,30 +299,34 @@ Exemple création utilisateur :
   "password": "Test@123",
   "statut": true,
   "id_role": 2,
-  "scope_type": "CENTRAL"
+  "scope_type": "GENERAL",
+  "id_departement": null,
+  "id_direction": null,
+  "id_service": null,
+  "id_magasin": null
 }
 ```
 
-Le champ `password` est en écriture seule. `password_hash` n'est jamais retourné.
+Le champ `password` est en écriture seule. Le champ `password_hash` n'est pas retourné par l'API.
 
-### Organisation
+## 12. Endpoints organisation
 
-| Ressource | URL | Rôles |
-| --- | --- | --- |
-| Départements | `/api/organisation/departements/` | ADMIN écriture, autres rôles lecture |
-| Directions | `/api/organisation/directions/` | ADMIN écriture, autres rôles lecture |
-| Services | `/api/organisation/services/` | ADMIN écriture, autres rôles lecture |
+| Ressource | URL | Lecture | Création | Modification | Suppression |
+| --- | --- | --- | --- | --- | --- |
+| Départements | `/api/organisation/departements/` | Tous les rôles authentifiés | `ADMIN` | `ADMIN` | `ADMIN` |
+| Directions | `/api/organisation/directions/` | Tous les rôles authentifiés | `ADMIN` | `ADMIN` | `ADMIN` |
+| Services | `/api/organisation/services/` | Tous les rôles authentifiés | `ADMIN` | `ADMIN` | `ADMIN` |
 
-### Catalogue
+## 13. Endpoints catalogue
 
-| Ressource | URL | Rôles |
-| --- | --- | --- |
-| Familles | `/api/catalogue/familles/` | ADMIN tout, GESTIONNAIRE création/modification, MAGASINIER/AUDITEUR lecture |
-| Catégories | `/api/catalogue/categories/` | ADMIN tout, GESTIONNAIRE création/modification, MAGASINIER/AUDITEUR lecture |
-| Unités | `/api/catalogue/unites/` | ADMIN tout, GESTIONNAIRE création/modification, MAGASINIER/AUDITEUR lecture |
-| Fournisseurs | `/api/catalogue/fournisseurs/` | ADMIN tout, GESTIONNAIRE création/modification, MAGASINIER/AUDITEUR lecture |
+| Ressource | URL | Lecture | Création | Modification | Suppression |
+| --- | --- | --- | --- | --- | --- |
+| Familles | `/api/catalogue/familles/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
+| Catégories | `/api/catalogue/categories/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
+| Unités | `/api/catalogue/unites/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
+| Fournisseurs | `/api/catalogue/fournisseurs/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
 
-Exemple catégorie :
+Exemple de catégorie :
 
 ```json
 {
@@ -420,15 +339,15 @@ Exemple catégorie :
 }
 ```
 
-### Stock
+## 14. Endpoints stock
 
-| Ressource | URL | Rôles |
-| --- | --- | --- |
-| Magasins | `/api/stock/magasins/` | ADMIN écriture, autres rôles lecture |
-| Matériels | `/api/stock/materiels/` | ADMIN tout, GESTIONNAIRE création/modification, MAGASINIER/AUDITEUR lecture |
-| Consommables | `/api/stock/consommables/` | ADMIN écriture, autres rôles lecture |
+| Ressource | URL | Lecture | Création | Modification | Suppression |
+| --- | --- | --- | --- | --- | --- |
+| Magasins | `/api/stock/magasins/` | Tous les rôles authentifiés | `ADMIN` | `ADMIN` | `ADMIN` |
+| Matériels | `/api/stock/materiels/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
+| Consommables | `/api/stock/consommables/` | Tous les rôles authentifiés | `ADMIN` | `ADMIN` | `ADMIN` |
 
-Exemple matériel :
+Exemple de matériel :
 
 ```json
 {
@@ -436,6 +355,7 @@ Exemple matériel :
   "code_materiel": "MAT-001",
   "id_categorie": 1,
   "id_magasin": 1,
+  "id_fournisseur": 1,
   "numero_serie": "SN-001",
   "marque": "Dell",
   "modele": "Latitude",
@@ -447,65 +367,112 @@ Exemple matériel :
 }
 ```
 
-### Operations
+## 15. Endpoints opérations
 
-| Ressource | URL | Rôles |
-| --- | --- | --- |
-| Mouvements | `/api/operations/mouvements/` | ADMIN tout, MAGASINIER création, autres rôles lecture selon permissions |
-| Affectations | `/api/operations/affectations/` | ADMIN tout, GESTIONNAIRE création/modification, autres lecture |
-| Consommations | `/api/operations/consommations/` | ADMIN tout, MAGASINIER création, autres lecture |
+| Ressource | URL | Lecture | Création | Modification | Suppression |
+| --- | --- | --- | --- | --- | --- |
+| Mouvements | `/api/operations/mouvements/` | Tous les rôles authentifiés | `ADMIN`, `MAGASINIER` | `ADMIN` | `ADMIN` |
+| Affectations | `/api/operations/affectations/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
+| Consommations | `/api/operations/consommations/` | Tous les rôles authentifiés | `ADMIN`, `MAGASINIER` | `ADMIN` | `ADMIN` |
 
-Exemple mouvement :
+Exemple de mouvement :
 
 ```json
 {
-  "id_mouvement": 1,
   "id_materiel": null,
   "id_consommable": 1,
   "type_mouvement": "ENTREE",
   "quantite": 10,
-  "magasin_destination_id": 1,
+  "magasin_source": null,
+  "magasin_destination": 1,
   "date_mouvement": "2026-06-24",
   "fait_par": 1,
+  "reference_document": "BL-001",
   "observation": "Entrée initiale"
 }
 ```
 
-### Inventaires
+## 16. Endpoints inventaires
 
-| Ressource | URL | Rôles |
-| --- | --- | --- |
-| Inventaires | `/api/inventaires/` | ADMIN tout, GESTIONNAIRE création/modification, autres lecture |
-| Détails | `/api/inventaires/details/` | ADMIN tout, GESTIONNAIRE création/modification, autres lecture |
+| Ressource | URL | Lecture | Création | Modification | Suppression |
+| --- | --- | --- | --- | --- | --- |
+| Inventaires | `/api/inventaires/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
+| Détails d'inventaire | `/api/inventaires/details/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
 
-### Maintenance
+Le champ `ecart` des détails d'inventaire est calculé automatiquement à partir de `quantite_reelle - quantite_theorique`.
 
-| Ressource | URL | Rôles |
-| --- | --- | --- |
-| Entretiens | `/api/maintenance/entretiens/` | ADMIN tout, GESTIONNAIRE création/modification, autres lecture |
-| Réparations | `/api/maintenance/reparations/` | ADMIN tout, GESTIONNAIRE création/modification, autres lecture |
+## 17. Endpoints maintenance
 
-### Demandes
+| Ressource | URL | Lecture | Création | Modification | Suppression |
+| --- | --- | --- | --- | --- | --- |
+| Entretiens | `/api/maintenance/entretiens/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
+| Réparations | `/api/maintenance/reparations/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
 
-| Ressource | URL | Rôles |
-| --- | --- | --- |
-| Demandes | `/api/demandes/` | ADMIN tout, GESTIONNAIRE création/modification, autres lecture |
+## 18. Endpoints demandes
 
-### Documents
+| Ressource | URL | Lecture | Création | Modification | Suppression |
+| --- | --- | --- | --- | --- | --- |
+| Demandes | `/api/demandes/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN`, `GESTIONNAIRE` | `ADMIN` |
 
-| Ressource | URL | Rôles |
-| --- | --- | --- |
-| Documents | `/api/documents/` | ADMIN tout, GESTIONNAIRE création, autres lecture |
+## 19. Endpoints documents
 
-## 12. Exemples Insomnia
+| Ressource | URL | Lecture | Création | Modification | Suppression |
+| --- | --- | --- | --- | --- | --- |
+| Documents | `/api/documents/` | Tous les rôles authentifiés | `ADMIN`, `GESTIONNAIRE` | `ADMIN` | `ADMIN` |
 
-### Login admin
+Un document doit être lié à un matériel ou à un consommable.
 
-```text
-POST /api/auth/login/
+## 20. Gestion des erreurs
+
+### Token manquant
+
+```json
+{
+  "detail": "Token manquant."
+}
 ```
 
-Body :
+### Token invalide ou expiré
+
+```json
+{
+  "detail": "Token invalide ou expiré."
+}
+```
+
+### Rôle insuffisant
+
+```json
+{
+  "detail": "Vous n'avez pas la permission d'effectuer cette action."
+}
+```
+
+### Identifiants invalides
+
+```json
+{
+  "non_field_errors": [
+    "Identifiants invalides."
+  ]
+}
+```
+
+### Ressource inexistante
+
+```json
+{
+  "detail": "Not found."
+}
+```
+
+## 21. Exemples de tests manuels
+
+### Tester le login
+
+```http
+POST /api/auth/login/
+```
 
 ```json
 {
@@ -514,162 +481,49 @@ Body :
 }
 ```
 
-### Tester `/me`
+### Tester le profil connecté
 
-```text
+```http
 GET /api/auth/me/
 Authorization: Bearer <access_token>
 ```
 
-### Tester refresh
+### Tester une liste paginée
 
-```text
-POST /api/auth/refresh/
+```http
+GET /api/catalogue/categories/?page=1&perpage=10
+Authorization: Bearer <access_token>
 ```
 
-Body :
+### Tester la lecture seule d'un auditeur
 
-```json
-{
-  "refresh": "<refresh_token>"
-}
-```
-
-### Tester auditeur lecture seule
-
-```text
-POST /api/auth/login/
-```
-
-Body :
-
-```json
-{
-  "matricule": "AUD001",
-  "password": "Test@123"
-}
-```
-
-Puis :
-
-```text
+```http
 GET /api/catalogue/categories/
+Authorization: Bearer <access_token_auditeur>
+```
+
+Le `GET` doit réussir.
+
+```http
 POST /api/catalogue/categories/
+Authorization: Bearer <access_token_auditeur>
+Content-Type: application/json
 ```
 
-Le `GET` doit réussir. Le `POST` doit être refusé.
+Le `POST` doit être refusé.
 
-### Tester magasinier
+### Tester une création par gestionnaire
 
-```text
-POST /api/auth/login/
-```
-
-Body :
-
-```json
-{
-  "matricule": "MAG001",
-  "password": "Test@123"
-}
-```
-
-Puis :
-
-```text
-POST /api/operations/mouvements/
-```
-
-### Tester gestionnaire
-
-```text
-POST /api/auth/login/
-```
-
-Body :
-
-```json
-{
-  "matricule": "GEST001",
-  "password": "Test@123"
-}
-```
-
-Puis :
-
-```text
+```http
 POST /api/stock/materiels/
+Authorization: Bearer <access_token_gestionnaire>
+Content-Type: application/json
 ```
 
-## 13. Commandes utiles
+### Tester une création par magasinier
 
-Créer et activer l'environnement virtuel :
-
-```powershell
-py -m venv env
-.\env\Scripts\Activate.ps1
+```http
+POST /api/operations/mouvements/
+Authorization: Bearer <access_token_magasinier>
+Content-Type: application/json
 ```
-
-Installer les dépendances :
-
-```powershell
-py -m pip install -r requirements.txt
-```
-
-Vérifier le projet :
-
-```powershell
-py manage.py check
-```
-
-Lancer le serveur :
-
-```powershell
-py manage.py runserver
-```
-
-Créer ou mettre à jour les utilisateurs de test :
-
-```powershell
-py manage.py create_test_users --password Test@123
-```
-
-Ne pas lancer `makemigrations` ou `migrate` pour modifier les tables métier Oracle existantes.
-
-## 14. Sécurité
-
-- Authentification par JWT `access` et `refresh`.
-- Le token `access` doit être envoyé avec `Authorization: Bearer <access_token>`.
-- `password_hash` n'est jamais exposé dans les serializers de sortie.
-- `password` est en `write_only`.
-- Les mots de passe sont stockés avec `make_password`.
-- Le rôle est toujours lu depuis la base via `USERS.ID_ROLE -> ROLE`.
-- `USER_ROLE` n'est pas utilisé en V1.
-- Les données texte sont assainies avec `bleach`.
-- Le SQL brut est évité. Quand il est nécessaire, il doit être paramétré.
-- Les permissions sont vérifiées côté backend.
-- Les endpoints sensibles refusent les requêtes sans token.
-
-## 15. Cache
-
-Un cache local `LocMemCache` est configuré pour le développement.
-
-Endpoints principalement cachés :
-
-- données d'organisation ;
-- catalogue ;
-- rôles ;
-- magasins.
-
-Les endpoints dynamiques ou sensibles comme users, mouvements, inventaires, demandes, maintenance et documents ne doivent pas être cachés longtemps.
-
-## 16. TODO
-
-- Ajouter le filtrage par périmètre `SCOPE_TYPE` quand les relations Oracle sont claires.
-- Finaliser officiellement le tri `order` si le backend d'ordering DRF n'est pas encore configuré.
-- Ajouter des filtres/recherches métier par module.
-- Ajouter une documentation OpenAPI/Swagger automatique, par exemple avec `drf-spectacular`.
-- Ajouter des tests automatiques complets.
-- Finaliser le frontend React.
-- Insérer ou valider les données officielles de référence.
-

@@ -1,90 +1,119 @@
-from django.db import models
 
+from django.db import models
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 class Role(models.Model):
-    id_role = models.FloatField(primary_key=True)
+    id_role = models.AutoField(primary_key=True)
+    code_role = models.CharField(max_length=30, unique=True)
     nom_role = models.CharField(max_length=30)
     description = models.CharField(max_length=255, blank=True, null=True)
-    statut = models.BooleanField()
-    code_role = models.CharField(unique=True, max_length=30)
+    statut = models.BooleanField(default=True)
 
     class Meta:
-        managed = False
-        db_table = 'ROLE'
+        db_table = "role"
+
+    def __str__(self):
+        return self.nom_role
+
 
 
 class Users(models.Model):
-    id_users = models.IntegerField(primary_key=True)
-    email = models.CharField(max_length=100, blank=True, null=True)
+    class ScopeType(models.TextChoices):
+        GENERAL = "GENERAL", "Général"
+        DEPARTEMENT = "DEPARTEMENT", "Département"
+        DIRECTION = "DIRECTION", "Direction"
+        SERVICE = "SERVICE", "Service"
+        MAGASIN = "MAGASIN", "Magasin"
+
+    id_users = models.AutoField(primary_key=True)
+
+    email = models.EmailField(max_length=100, unique=True, blank=True, null=True)
     nom_users = models.CharField(max_length=100)
-    matricule = models.CharField(max_length=30)
+    matricule = models.CharField(max_length=30, unique=True)
     telephone = models.CharField(max_length=20, blank=True, null=True)
+
     password_hash = models.CharField(max_length=255)
-    statut = models.BooleanField()
+
+    statut = models.BooleanField(default=True)
     dernier_login = models.DateTimeField(blank=True, null=True)
-    date_ajout = models.DateField()
+    date_ajout = models.DateField(default=timezone.localdate)
+
     id_role = models.ForeignKey(
-        'comptes.Role',
-        models.DO_NOTHING,
-        db_column='id_role',
-        blank=True,
-        null=True,
+        Role,
+        on_delete=models.PROTECT,
+        db_column="id_role",
+        related_name="users"
     )
-    scope_type = models.CharField(max_length=20, blank=True, null=True)
+
+    scope_type = models.CharField(
+        max_length=20,
+        choices=ScopeType.choices,
+        default=ScopeType.GENERAL
+    )
+
     id_departement = models.ForeignKey(
-        'organisation.Departement',
-        models.DO_NOTHING,
-        db_column='id_departement',
+        "organisation.Departement",
+        on_delete=models.SET_NULL,
+        db_column="id_departement",
         blank=True,
         null=True,
+        related_name="users"
     )
+
     id_direction = models.ForeignKey(
-        'organisation.Direction',
-        models.DO_NOTHING,
-        db_column='id_direction',
+        "organisation.Direction",
+        on_delete=models.SET_NULL,
+        db_column="id_direction",
         blank=True,
         null=True,
+        related_name="users"
     )
+
     id_service = models.ForeignKey(
-        'organisation.Service',
-        models.DO_NOTHING,
-        db_column='id_service',
+        "organisation.Service",
+        on_delete=models.SET_NULL,
+        db_column="id_service",
         blank=True,
         null=True,
+        related_name="users"
     )
+
     id_magasin = models.ForeignKey(
-        'stock.Magasin',
-        models.DO_NOTHING,
-        db_column='id_magasin',
+        "stock.Magasin",
+        on_delete=models.SET_NULL,
+        db_column="id_magasin",
         blank=True,
         null=True,
+        related_name="users"
     )
 
     class Meta:
-        managed = False
-        db_table = 'USERS'
+        db_table = "users"
 
-    @property
-    def is_authenticated(self):
-        return True
+    def clean(self):
+        errors = {}
 
-    @property
-    def role_code(self):
-        role = self.id_role
-        if not role:
-            return None
+        if self.scope_type == self.ScopeType.DEPARTEMENT and not self.id_departement:
+            errors["id_departement"] = "Le département est obligatoire pour un scope DEPARTEMENT."
 
-        raw_role = role.code_role or role.nom_role
-        if not raw_role:
-            return None
+        if self.scope_type == self.ScopeType.DIRECTION and not self.id_direction:
+            errors["id_direction"] = "La direction est obligatoire pour un scope DIRECTION."
 
-        raw_role = raw_role.upper()
-        if 'ADMIN' in raw_role:
-            return 'ADMIN'
-        if 'GESTIONNAIRE' in raw_role:
-            return 'GESTIONNAIRE'
-        if 'MAGASINIER' in raw_role:
-            return 'MAGASINIER'
-        if 'AUDITEUR' in raw_role or 'AUDITOR' in raw_role:
-            return 'AUDITEUR'
-        return raw_role
+        if self.scope_type == self.ScopeType.SERVICE and not self.id_service:
+            errors["id_service"] = "Le service est obligatoire pour un scope SERVICE."
+
+        if self.scope_type == self.ScopeType.MAGASIN and not self.id_magasin:
+            errors["id_magasin"] = "Le magasin est obligatoire pour un scope MAGASIN."
+
+        if self.scope_type == self.ScopeType.GENERAL:
+            if self.id_departement or self.id_direction or self.id_service or self.id_magasin:
+                errors["scope_type"] = "Un utilisateur GENERAL ne doit pas avoir de périmètre précis."
+
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        return f"{self.nom_users} - {self.matricule}"
+
+
