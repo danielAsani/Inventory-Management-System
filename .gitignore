@@ -1,0 +1,20 @@
+# Python / Django
+STAGE-BACKEND/env/
+STAGE-BACKEND/.venv/
+__pycache__/
+*.pyc
+STAGE-BACKEND/.env
+
+*.log
+
+# Frontend / React
+STAGE-FRONTEND/node_modules/
+STAGE-FRONTEND/.env
+STAGE-FRONTEND/dist/
+STAGE-FRONTEND/build/
+
+# OS / éditeur
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
