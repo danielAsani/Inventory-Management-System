@@ -1,0 +1,4 @@
+.layout { display: flex; min-height: 100vh; background: var(--color-canvas); }
+.main { min-width: 0; flex: 1; }
+.content { width: min(100%, 100rem); margin: 0 auto; padding: var(--space-8); }
+@media (max-width: 600px) { .content { padding: var(--space-6) var(--space-4); } }

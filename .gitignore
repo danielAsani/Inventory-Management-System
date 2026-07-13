@@ -1,19 +1,31 @@
 # Python / Django
-STAGE-BACKEND/env/
-STAGE-BACKEND/.venv/
+backend/env/
+backend/.venv/
 __pycache__/
 *.pyc
-STAGE-BACKEND/.env
+*.pyo
+*.pyd
+backend/.env
+backend/.env.*
+!backend/.env.example
+.pytest_cache/
+.coverage
+htmlcov/
+*.sqlite3
+media/
 
 *.log
 
 # Frontend / React
-STAGE-FRONTEND/node_modules/
-STAGE-FRONTEND/.env
-STAGE-FRONTEND/dist/
-STAGE-FRONTEND/build/
+frontend/node_modules/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/dist/
+frontend/build/
+template/
 
-# OS / éditeur
+# OS / editeur
 .vscode/
 .idea/
 .DS_Store

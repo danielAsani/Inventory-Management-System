@@ -1,0 +1,37 @@
+﻿
+import django.db.models.deletion
+import django.utils.timezone
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ('comptes', '0001_initial'),
+        ('stock', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Document',
+            fields=[
+                ('id_document', models.AutoField(primary_key=True, serialize=False)),
+                ('type_document', models.CharField(choices=[('FACTURE', 'Facture'), ('BON_LIVRAISON', 'Bon de livraison'), ('GARANTIE', 'Garantie'), ('FICHE_TECHNIQUE', 'Fiche technique'), ('PHOTO', 'Photo'), ('AUTRE', 'Autre')], default='AUTRE', max_length=100)),
+                ('numero_document', models.CharField(blank=True, max_length=100, null=True)),
+                ('titre', models.CharField(max_length=255)),
+                ('chemin_fichier', models.CharField(blank=True, max_length=500, null=True)),
+                ('mime_type', models.CharField(blank=True, max_length=100, null=True)),
+                ('taille_fichier_octets', models.PositiveBigIntegerField(blank=True, null=True)),
+                ('date_upload', models.DateTimeField(default=django.utils.timezone.now)),
+                ('observation', models.CharField(blank=True, max_length=500, null=True)),
+                ('cree_par', models.ForeignKey(db_column='cree_par', on_delete=django.db.models.deletion.PROTECT, related_name='documents_crees', to='comptes.users')),
+                ('id_consommable', models.ForeignKey(blank=True, db_column='id_consommable', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='documents', to='stock.consommable')),
+                ('id_materiel', models.ForeignKey(blank=True, db_column='id_materiel', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='documents', to='stock.materiel')),
+            ],
+            options={
+                'db_table': 'document',
+            },
+        ),
+    ]

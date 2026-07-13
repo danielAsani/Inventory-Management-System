@@ -1,0 +1,59 @@
+﻿
+import django.db.models.deletion
+import django.utils.timezone
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ('stock', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Entretien',
+            fields=[
+                ('id_entretien', models.AutoField(primary_key=True, serialize=False)),
+                ('date_entretien', models.DateField(default=django.utils.timezone.localdate)),
+                ('date_fin_prevue', models.DateField(blank=True, null=True)),
+                ('date_fin_reelle', models.DateField(blank=True, null=True)),
+                ('description', models.CharField(blank=True, max_length=500, null=True)),
+                ('cout_entretien', models.DecimalField(decimal_places=2, default=0, max_digits=12)),
+                ('type_entretien', models.CharField(choices=[('PREVENTIF', 'PrÃ©ventif'), ('CORRECTIF', 'Correctif'), ('CONTROLE', 'ContrÃ´le')], default='PREVENTIF', max_length=20)),
+                ('kilometrage', models.DecimalField(blank=True, decimal_places=2, max_digits=14, null=True)),
+                ('type_prestataire', models.CharField(choices=[('AUCUN', 'Aucun'), ('INTERNE', 'Interne'), ('PRESTATAIRE', 'Prestataire'), ('CONSTRUCTEUR', 'Constructeur')], default='AUCUN', max_length=20)),
+                ('nom_prestataire', models.CharField(blank=True, max_length=100, null=True)),
+                ('garantie_entretien_mois', models.PositiveIntegerField(blank=True, null=True)),
+                ('prochaine_date', models.DateField(blank=True, null=True)),
+                ('statut', models.CharField(choices=[('PLANIFIE', 'PlanifiÃ©'), ('EN_COURS', 'En cours'), ('TERMINE', 'TerminÃ©'), ('ANNULE', 'AnnulÃ©')], default='PLANIFIE', max_length=20)),
+                ('observation', models.CharField(blank=True, max_length=500, null=True)),
+                ('id_materiel', models.ForeignKey(db_column='id_materiel', on_delete=django.db.models.deletion.PROTECT, related_name='entretiens', to='stock.materiel')),
+            ],
+            options={
+                'db_table': 'entretien',
+            },
+        ),
+        migrations.CreateModel(
+            name='Reparation',
+            fields=[
+                ('id_reparation', models.AutoField(primary_key=True, serialize=False)),
+                ('date_reparation', models.DateField(default=django.utils.timezone.localdate)),
+                ('date_fin_prevue', models.DateField(blank=True, null=True)),
+                ('date_fin_reelle', models.DateField(blank=True, null=True)),
+                ('description', models.CharField(blank=True, max_length=500, null=True)),
+                ('cout_reparation', models.DecimalField(decimal_places=2, default=0, max_digits=12)),
+                ('type_prestataire', models.CharField(choices=[('AUCUN', 'Aucun'), ('INTERNE', 'Interne'), ('PRESTATAIRE', 'Prestataire'), ('CONSTRUCTEUR', 'Constructeur')], default='AUCUN', max_length=20)),
+                ('nom_prestataire', models.CharField(blank=True, max_length=100, null=True)),
+                ('garantie_reparation_mois', models.PositiveIntegerField(blank=True, null=True)),
+                ('statut', models.CharField(choices=[('EN_ATTENTE', 'En attente'), ('EN_COURS', 'En cours'), ('TERMINEE', 'TerminÃ©e'), ('ANNULEE', 'AnnulÃ©e')], default='EN_ATTENTE', max_length=20)),
+                ('observation', models.CharField(blank=True, max_length=500, null=True)),
+                ('id_materiel', models.ForeignKey(db_column='id_materiel', on_delete=django.db.models.deletion.PROTECT, related_name='reparations', to='stock.materiel')),
+            ],
+            options={
+                'db_table': 'reparation',
+            },
+        ),
+    ]

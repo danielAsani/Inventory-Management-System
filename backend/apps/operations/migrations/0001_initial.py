@@ -1,0 +1,67 @@
+﻿
+import django.db.models.deletion
+import django.utils.timezone
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ('comptes', '0001_initial'),
+        ('stock', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Affectation',
+            fields=[
+                ('id_affectation', models.AutoField(primary_key=True, serialize=False)),
+                ('entite_type', models.CharField(choices=[('DEPARTEMENT', 'DÃ©partement'), ('DIRECTION', 'Direction'), ('SERVICE', 'Service'), ('UTILISATEUR', 'Utilisateur')], max_length=20)),
+                ('entite_id', models.PositiveIntegerField()),
+                ('date_affectation', models.DateField(default=django.utils.timezone.localdate)),
+                ('date_retour', models.DateField(blank=True, null=True)),
+                ('statut', models.CharField(choices=[('ACTIVE', 'Active'), ('RETOURNEE', 'RetournÃ©e'), ('ANNULEE', 'AnnulÃ©e')], default='ACTIVE', max_length=20)),
+                ('observation', models.CharField(blank=True, max_length=500, null=True)),
+                ('id_materiel', models.ForeignKey(db_column='id_materiel', on_delete=django.db.models.deletion.PROTECT, related_name='affectations', to='stock.materiel')),
+            ],
+            options={
+                'db_table': 'affectation',
+            },
+        ),
+        migrations.CreateModel(
+            name='Consommation',
+            fields=[
+                ('id_consommation', models.AutoField(primary_key=True, serialize=False)),
+                ('quantite', models.PositiveIntegerField()),
+                ('date_consommation', models.DateField(default=django.utils.timezone.localdate)),
+                ('demandeur', models.CharField(blank=True, max_length=100, null=True)),
+                ('observation', models.CharField(blank=True, max_length=500, null=True)),
+                ('fait_par', models.ForeignKey(blank=True, db_column='fait_par', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='consommations_effectuees', to='comptes.users')),
+                ('id_consommable', models.ForeignKey(db_column='id_consommable', on_delete=django.db.models.deletion.PROTECT, related_name='consommations', to='stock.consommable')),
+            ],
+            options={
+                'db_table': 'consommation',
+            },
+        ),
+        migrations.CreateModel(
+            name='MouvementStock',
+            fields=[
+                ('id_mouvement', models.AutoField(primary_key=True, serialize=False)),
+                ('type_mouvement', models.CharField(choices=[('ENTREE', 'EntrÃ©e'), ('SORTIE', 'Sortie'), ('TRANSFERT', 'Transfert'), ('AJUSTEMENT', 'Ajustement')], max_length=20)),
+                ('quantite', models.PositiveIntegerField(default=1)),
+                ('date_mouvement', models.DateField(default=django.utils.timezone.localdate)),
+                ('reference_document', models.CharField(blank=True, max_length=100, null=True)),
+                ('observation', models.CharField(blank=True, max_length=500, null=True)),
+                ('fait_par', models.ForeignKey(blank=True, db_column='fait_par', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='mouvements_effectues', to='comptes.users')),
+                ('id_consommable', models.ForeignKey(blank=True, db_column='id_consommable', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='mouvements_stock', to='stock.consommable')),
+                ('id_materiel', models.ForeignKey(blank=True, db_column='id_materiel', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='mouvements_stock', to='stock.materiel')),
+                ('magasin_destination', models.ForeignKey(blank=True, db_column='magasin_destination_id', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='mouvements_entrants', to='stock.magasin')),
+                ('magasin_source', models.ForeignKey(blank=True, db_column='magasin_source_id', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='mouvements_sortants', to='stock.magasin')),
+            ],
+            options={
+                'db_table': 'mouvement_stock',
+            },
+        ),
+    ]
