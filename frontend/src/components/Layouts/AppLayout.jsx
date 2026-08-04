@@ -16,7 +16,7 @@ export default function AppLayout() {
   };
 
   return (
-    <div className={styles.layout}>
+    <div className={styles.layout} style={{ "--sidebar-width-current": isSidebarCollapsed ? "4.75rem" : "16rem" }}>
       <Sidebar isCollapsed={isSidebarCollapsed} user={user} />
       <div className={styles.main}>
         <Header user={user} onToggleSidebar={() => setIsSidebarCollapsed((current) => !current)} onLogout={handleLogout} />

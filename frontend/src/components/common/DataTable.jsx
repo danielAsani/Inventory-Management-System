@@ -1,10 +1,7 @@
-import { ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpDown, ChevronLeft, ChevronRight, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import EmptyState from "./EmptyState";
 import styles from "./DataTable.module.css";
-
-function actionClassName(action) {
-  return [styles.textAction, action.variant ? styles[`action${action.variant}`] : ""].filter(Boolean).join(" ");
-}
 
 const VALUE_LABELS = {
   true: "Actif",
@@ -159,6 +156,14 @@ function renderValue(row, column, fieldByName, options) {
   return String(value);
 }
 
+function menuActionClassName(action) {
+  return [styles.menuItem, action.variant ? styles[`action${action.variant}`] : ""].filter(Boolean).join(" ");
+}
+
+function isStatusAction(action) {
+  return /panne|reparation|hors service|statut|situation|valider|rejeter|finaliser|retour/i.test(action.label || "");
+}
+
 export default function DataTable({
   columns,
   fields = [],
@@ -175,34 +180,170 @@ export default function DataTable({
   onView,
   onEdit,
   onDelete,
+  onBulkDelete,
   onCustomAction,
   onPageChange,
   onSort,
   sortableColumns,
 }) {
-  if (!rows.length) return <EmptyState />;
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set());
+  const [openMenu, setOpenMenu] = useState(null);
+  const [openStatusKey, setOpenStatusKey] = useState("");
   const showActions = canView || canEdit || canDelete || customActions.length > 0;
-  const hasCustomActions = customActions.length > 0;
   const sortableKeys = new Set((sortableColumns || columns).map((column) => column.key));
   const fieldByName = Object.fromEntries(fields.map((field) => [field.name, field]));
+  const selectedRows = useMemo(
+    () => rows.filter((row) => selectedKeys.has(String(row.__rowKey))),
+    [rows, selectedKeys],
+  );
+  const allVisibleSelected = rows.length > 0 && selectedRows.length === rows.length;
 
-  const renderActions = (row) => showActions && (
-    <div className={styles.actions}>
-      {canView && <button type="button" className={styles.iconAction} onClick={() => onView(row)} aria-label="Voir le detail"><Eye size={16} /></button>}
-      {customActions
-        .filter((action) => !action.visibleWhen || action.visibleWhen(row))
-        .map((action) => (
-          <button type="button" className={actionClassName(action)} onClick={() => onCustomAction(action, row)} key={action.label}>
+  useEffect(() => {
+    setSelectedKeys(new Set());
+    setOpenMenu(null);
+    setOpenStatusKey("");
+  }, [rows]);
+
+  if (!rows.length) return <EmptyState />;
+
+  const toggleRow = (row) => {
+    const key = String(row.__rowKey);
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleAllVisible = () => {
+    setSelectedKeys((current) => {
+      if (rows.every((row) => current.has(String(row.__rowKey)))) return new Set();
+      return new Set(rows.map((row) => String(row.__rowKey)));
+    });
+  };
+
+  const closeMenus = () => {
+    setOpenMenu(null);
+    setOpenStatusKey("");
+  };
+
+  const runAction = (callback) => {
+    closeMenus();
+    callback();
+  };
+
+  const runBulkDelete = () => {
+    if (!selectedRows.length) return;
+    onBulkDelete?.(selectedRows);
+  };
+
+  const toggleMenu = (event, row) => {
+    const key = String(row.__rowKey);
+    const rect = event.currentTarget.getBoundingClientRect();
+    setOpenMenu((current) => {
+      if (current?.key === key) return null;
+      const menuWidth = 220;
+      return {
+        key,
+        row,
+        top: rect.bottom + 8,
+        left: Math.max(12, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 12)),
+      };
+    });
+  };
+
+  const renderFloatingMenu = () => {
+    if (!openMenu) return null;
+    const row = openMenu.row;
+    const visibleCustomActions = customActions.filter((action) => !action.visibleWhen || action.visibleWhen(row));
+    const statusActions = visibleCustomActions.filter(isStatusAction);
+    const directActions = visibleCustomActions.filter((action) => !isStatusAction(action));
+
+    return (
+      <div className={`${styles.rowMenu} ${styles.floatingMenu}`} style={{ top: openMenu.top, left: openMenu.left }} role="menu">
+        {canView && <button type="button" className={styles.menuItem} onClick={() => runAction(() => onView(row))}>Voir</button>}
+        {canEdit && <button type="button" className={styles.menuItem} onClick={() => runAction(() => onEdit(row))}>Modifier</button>}
+        {statusActions.length > 0 && (
+          <div
+            className={styles.menuWithSubmenu}
+            onMouseEnter={() => setOpenStatusKey(openMenu.key)}
+            onMouseLeave={() => setOpenStatusKey("")}
+          >
+            <button
+              type="button"
+              className={styles.menuItem}
+              onClick={() => setOpenStatusKey((current) => (current === openMenu.key ? "" : openMenu.key))}
+            >
+              Statut / situation
+            </button>
+            {openStatusKey === openMenu.key && (
+              <div className={styles.rowSubmenu} role="menu">
+                {statusActions.map((action) => (
+                  <button type="button" className={menuActionClassName(action)} onClick={() => runAction(() => onCustomAction(action, row))} key={action.label}>
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {directActions.map((action) => (
+          <button type="button" className={menuActionClassName(action)} onClick={() => runAction(() => onCustomAction(action, row))} key={action.label}>
             {action.label}
           </button>
         ))}
-      {canEdit && <button type="button" className={styles.iconAction} onClick={() => onEdit(row)} aria-label="Modifier"><Pencil size={16} /></button>}
-      {canDelete && <button type="button" className={styles.iconAction} onClick={() => onDelete(row)} aria-label="Supprimer"><Trash2 size={16} /></button>}
+        {canDelete && (
+          <button type="button" className={`${styles.menuItem} ${styles.menuDanger}`} onClick={() => runAction(() => onDelete(row))}>
+            Supprimer
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const renderActions = (row) => showActions && (
+    <div className={styles.actions} data-menu-open={openMenu?.key === String(row.__rowKey) ? "true" : undefined}>
+      {canView && (
+        <button type="button" className={styles.iconAction} onClick={() => runAction(() => onView(row))} aria-label="Voir le detail" title="Voir">
+          <Eye size={16} />
+        </button>
+      )}
+      {canEdit && (
+        <button type="button" className={styles.iconAction} onClick={() => runAction(() => onEdit(row))} aria-label="Modifier" title="Modifier">
+          <Pencil size={16} />
+        </button>
+      )}
+      <div className={styles.actionMenuWrap}>
+        <button
+          type="button"
+          className={styles.iconAction}
+          onClick={(event) => toggleMenu(event, row)}
+          aria-label="Plus d'actions"
+          aria-expanded={openMenu?.key === String(row.__rowKey)}
+          title="Actions"
+        >
+          <MoreHorizontal size={17} />
+        </button>
+      </div>
     </div>
   );
 
   return (
     <div className={styles.wrap}>
+      {selectedRows.length > 0 && (
+        <div className={styles.bulkBar} role="status">
+          <strong>{selectedRows.length} selectionne(s)</strong>
+          <div>
+            {canDelete && (
+              <button type="button" className={styles.bulkDanger} onClick={runBulkDelete}>
+                <Trash2 size={16} /> Supprimer
+              </button>
+            )}
+            <button type="button" onClick={() => setSelectedKeys(new Set())}>Deselectionner</button>
+          </div>
+        </div>
+      )}
       {viewMode === "cards" ? (
         <div className={styles.cardGrid}>
           {rows.map((row) => {
@@ -212,6 +353,9 @@ export default function DataTable({
             return (
               <article className={styles.recordCard} key={row.__rowKey}>
                 <header className={styles.cardHeader}>
+                  <label className={styles.cardSelect} aria-label="Selectionner la ligne">
+                    <input type="checkbox" checked={selectedKeys.has(String(row.__rowKey))} onChange={() => toggleRow(row)} />
+                  </label>
                   <div>
                     <span>{primaryColumn?.label || "Reference"}</span>
                     <strong>{primaryColumn ? renderValue(row, primaryColumn, fieldByName, options) : row.__rowKey}</strong>
@@ -241,6 +385,9 @@ export default function DataTable({
           <table className={styles.table}>
             <thead>
               <tr>
+                <th className={styles.selectionHeader}>
+                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Selectionner toutes les lignes visibles" />
+                </th>
                 {columns.map((column) => (
                   <th className={columnClassName(column)} key={column.key}>
                     {onSort && sortableKeys.has(column.key) ? (
@@ -251,12 +398,15 @@ export default function DataTable({
                     ) : column.label}
                   </th>
                 ))}
-                {showActions && <th className={`${styles.actionsHeader} ${hasCustomActions ? styles.wideActionsHeader : ""}`}>Actions</th>}
+                {showActions && <th className={styles.actionsHeader}>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.__rowKey}>
+                <tr className={selectedKeys.has(String(row.__rowKey)) ? styles.selectedRow : ""} key={row.__rowKey}>
+                  <td className={styles.selectionCell}>
+                    <input type="checkbox" checked={selectedKeys.has(String(row.__rowKey))} onChange={() => toggleRow(row)} aria-label="Selectionner la ligne" />
+                  </td>
                   {columns.map((column) => <td className={columnClassName(column)} key={column.key}>{renderValue(row, column, fieldByName, options)}</td>)}
                   {showActions && <td>{renderActions(row)}</td>}
                 </tr>
@@ -265,6 +415,7 @@ export default function DataTable({
           </table>
         </div>
       )}
+      {renderFloatingMenu()}
       <div className={styles.pagination}>
         <span>{count} enregistrement(s)</span>
         <div>

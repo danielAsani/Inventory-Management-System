@@ -1,4 +1,4 @@
-import { LayoutGrid, Plus, Search, Table2, X } from "lucide-react";
+import { LayoutGrid, Maximize2, Minimize2, Plus, Search, Table2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { createResourceApi } from "../../api/resourceApi";
@@ -420,6 +420,7 @@ function DetailValue({ value, field, options, item }) {
 }
 
 function DetailModal({ config, item, options, customActions, onCustomAction, onClose }) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const fields = getDetailFields(config);
   const groups = config.detailGroups || [{ title: "Informations", fields: fields.map((field) => field.name), tone: "blue" }];
   const visibleActions = customActions.filter((action) => !action.visibleWhen || action.visibleWhen(item));
@@ -429,14 +430,24 @@ function DetailModal({ config, item, options, customActions, onCustomAction, onC
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={styles.modalBackdrop} role="presentation">
-      <section className={`${styles.modal} ${styles.detailModal}`} role="dialog" aria-modal="true" aria-label="Detail">
+    <div className={`${styles.modalBackdrop} ${styles.detailBackdrop}`} role="presentation">
+      <section
+        className={`${styles.modal} ${styles.detailModal} ${isFullscreen ? styles.detailModalFull : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Detail"
+      >
         <header>
           <div>
             <h2>Detail</h2>
             <p>{config.title}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Fermer"><X size={16} /></button>
+          <div className={styles.detailHeaderActions}>
+            <button type="button" onClick={() => setIsFullscreen((current) => !current)} aria-label={isFullscreen ? "Reduire" : "Voir en plein ecran"}>
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+            <button type="button" onClick={onClose} aria-label="Fermer"><X size={16} /></button>
+          </div>
         </header>
         <div className={styles.detailSummary}>
           <span>{config.title}</span>
@@ -679,8 +690,6 @@ export default function ResourcePage({ resourceKey }) {
     () => sortRows(filteredRows, sortableColumns, sortKey, sortDirection),
     [filteredRows, sortDirection, sortKey, sortableColumns],
   );
-  const activeSortColumn = sortableColumns.find((column) => column.key === sortKey);
-
   const changeSort = (key) => {
     setSortKey((currentKey) => {
       if (currentKey === key) {
@@ -769,6 +778,22 @@ export default function ResourcePage({ resourceKey }) {
     }
   };
 
+  const performBulkDelete = async (items) => {
+    try {
+      setError("");
+      setFeedback("");
+      for (const item of items) {
+        await api.remove(getRowKey(config, item), { cascade: true });
+      }
+      setViewingItem(null);
+      setFeedback(`${items.length} enregistrement(s) supprime(s) avec succes.`);
+      loadData();
+      refreshOptions();
+    } catch (deleteError) {
+      setError(getApiErrorMessage(deleteError));
+    }
+  };
+
   const deleteItem = (item) => {
     setConfirmDialog({
       title: "Confirmer la suppression",
@@ -777,6 +802,19 @@ export default function ResourcePage({ resourceKey }) {
       onConfirm: () => {
         setConfirmDialog(null);
         performDelete(item);
+      },
+    });
+  };
+
+  const deleteItems = (items) => {
+    if (!items.length) return;
+    setConfirmDialog({
+      title: "Confirmer la suppression",
+      message: `${items.length} enregistrement(s) seront supprime(s). Les elements lies seront aussi supprimes.`,
+      confirmLabel: "Supprimer",
+      onConfirm: () => {
+        setConfirmDialog(null);
+        performBulkDelete(items);
       },
     });
   };
@@ -891,27 +929,6 @@ export default function ResourcePage({ resourceKey }) {
         </div>
       </section>
 
-      {sortableColumns.length > 0 && (
-        <section className={styles.sortPanel} aria-label="Tri des donnees">
-          <div className={styles.sortSummary}>
-            <span>Trier par</span>
-            <small>{activeSortColumn?.label || "Aucune"}</small>
-          </div>
-          <div className={styles.sortChips}>
-            {sortableColumns.map((column) => (
-              <button
-                type="button"
-                className={sortKey === column.key ? styles.activeSort : ""}
-                onClick={() => changeSort(column.key)}
-                key={column.key}
-              >
-                {column.label}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
       {quickFilterConfig && (
         <section className={styles.quickFilters} aria-label={`Filtrer par ${quickFilterConfig.label}`}>
           <div className={styles.quickFilterSummary}>
@@ -970,6 +987,7 @@ export default function ResourcePage({ resourceKey }) {
           onView={openView}
           onEdit={openEdit}
           onDelete={deleteItem}
+          onBulkDelete={deleteItems}
           onCustomAction={runCustomAction}
           onPageChange={setPage}
           onSort={changeSort}

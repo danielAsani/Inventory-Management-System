@@ -3,6 +3,50 @@
   gap: var(--space-5);
 }
 
+.bulkBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid #bfd0ff;
+  border-radius: var(--radius-md);
+  background: #f4f7ff;
+  color: var(--color-text);
+}
+
+.bulkBar strong {
+  font-size: var(--font-size-sm);
+  font-weight: 750;
+}
+
+.bulkBar > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.bulkBar button {
+  display: inline-flex;
+  min-height: 2.15rem;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.bulkBar .bulkDanger {
+  border-color: rgb(180 35 24 / 20%);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
 .tableScroller {
   overflow-x: auto;
   border: 1px solid var(--color-border);
@@ -26,6 +70,20 @@
   vertical-align: middle;
 }
 
+.selectionHeader,
+.selectionCell {
+  width: 2.75rem;
+  padding-inline: var(--space-3) !important;
+}
+
+.selectionHeader input,
+.selectionCell input,
+.cardSelect input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary);
+}
+
 .table th {
   position: sticky;
   top: 0;
@@ -41,6 +99,10 @@
 
 .table tbody tr:hover {
   background: linear-gradient(90deg, #f7faff, #fbfbfa);
+}
+
+.table tbody tr.selectedRow {
+  background: #f1f5ff;
 }
 
 .table tr:last-child td {
@@ -128,30 +190,19 @@
 }
 
 .actionsHeader {
-  width: 7rem;
-}
-
-.wideActionsHeader {
-  width: 26rem;
+  width: 8.5rem;
 }
 
 .actions {
   display: flex;
-  flex-wrap: wrap;
+  position: relative;
+  flex-wrap: nowrap;
   gap: var(--space-2);
 }
 
 .table .actions {
-  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
-  opacity: 0;
-  transition: opacity var(--motion-fast);
-}
-
-.table tr:hover .actions,
-.table tr:focus-within .actions {
-  opacity: 1;
 }
 
 .actions button,
@@ -185,19 +236,25 @@
   min-width: 4.25rem;
 }
 
-.actions .actiondanger {
+.actions .actiondanger,
+.rowMenu .actiondanger,
+.rowSubmenu .actiondanger {
   border-color: rgb(180 35 24 / 22%);
   background: var(--color-danger-soft);
   color: var(--color-danger);
 }
 
-.actions .actionwarning {
+.actions .actionwarning,
+.rowMenu .actionwarning,
+.rowSubmenu .actionwarning {
   border-color: rgb(154 103 0 / 22%);
   background: var(--color-warning-soft);
   color: var(--color-warning);
 }
 
-.actions .actionmuted {
+.actions .actionmuted,
+.rowMenu .actionmuted,
+.rowSubmenu .actionmuted {
   background: var(--color-surface-muted);
   color: var(--color-text-muted);
 }
@@ -207,6 +264,73 @@
   border-color: var(--color-border-strong);
   background: var(--color-surface-muted);
   color: var(--color-text);
+}
+
+.actionMenuWrap {
+  position: relative;
+}
+
+.rowMenu,
+.rowSubmenu {
+  position: absolute;
+  z-index: 20;
+  display: grid;
+  min-width: 12.5rem;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.rowMenu {
+  top: calc(100% + var(--space-2));
+  right: 0;
+}
+
+.floatingMenu {
+  position: fixed;
+  top: auto;
+  right: auto;
+}
+
+.rowSubmenu {
+  top: -0.5rem;
+  right: calc(100% + var(--space-2));
+}
+
+.menuWithSubmenu {
+  position: relative;
+}
+
+.rowMenu .menuItem,
+.rowSubmenu .menuItem {
+  display: flex;
+  width: 100%;
+  min-height: 2.15rem;
+  justify-content: flex-start;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  text-align: left;
+}
+
+.rowMenu .menuItem:hover,
+.rowSubmenu .menuItem:hover {
+  background: var(--color-surface-muted);
+}
+
+.rowMenu .menuDanger {
+  color: var(--color-danger);
+}
+
+.rowMenu .menuDanger:hover {
+  background: var(--color-danger-soft);
 }
 
 .pagination {
@@ -261,8 +385,19 @@
 .cardHeader {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: var(--space-4);
+}
+
+.cardHeader > div {
+  flex: 1;
+}
+
+.cardSelect {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  place-items: center;
 }
 
 .cardHeader div {
@@ -330,6 +465,7 @@
 }
 
 .recordCard .actions {
+  justify-content: flex-end;
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border);
 }

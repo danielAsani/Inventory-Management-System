@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyRound, Save } from "lucide-react";
+import { KeyRound, Save, ShieldCheck, UserRound } from "lucide-react";
 import { changePassword } from "../../api/authApi";
 import { useAuth } from "../../hooks/useAuth";
 import { getApiErrorMessage } from "../../utils/apiErrors";
@@ -45,13 +45,23 @@ export default function Profile() {
   return (
     <section className={styles.page}>
       <header className={styles.heading}>
-        <h1>Mon profil</h1>
-        <p>{user?.matricule || "Utilisateur"} peut gerer son acces a la plateforme.</p>
+        <div>
+          <span>Compte utilisateur</span>
+          <h1>Mon profil</h1>
+          <p>{user?.matricule || "Utilisateur"} peut gerer son acces a la plateforme.</p>
+        </div>
       </header>
 
       <div className={styles.grid}>
-        <article className={styles.panel}>
-          <h2>Compte</h2>
+        <article className={`${styles.panel} ${styles.identityPanel}`}>
+          <div className={styles.identityHeader}>
+            <div className={styles.avatar}><UserRound size={24} /></div>
+            <div>
+              <span>Identite</span>
+              <h2>{user?.nom_users || "Utilisateur"}</h2>
+              <p>{user?.email || "Aucune adresse email"}</p>
+            </div>
+          </div>
           <div className={styles.summary}>
             <div className={styles.summaryItem}>
               <span>Nom</span>
@@ -63,17 +73,27 @@ export default function Profile() {
             </div>
             <div className={styles.summaryItem}>
               <span>Role</span>
-              <strong>{roleLabel(user?.role)}</strong>
+              <strong className={styles.roleBadge}><ShieldCheck size={15} /> {roleLabel(user?.role)}</strong>
             </div>
             <div className={styles.summaryItem}>
               <span>Perimetre</span>
               <strong>{user?.perimetre || user?.scope_type || "-"}</strong>
             </div>
+            <div className={styles.summaryItem}>
+              <span>Telephone</span>
+              <strong>{user?.telephone || "-"}</strong>
+            </div>
           </div>
         </article>
 
         <article className={styles.panel}>
-          <h2>Mot de passe</h2>
+          <div className={styles.panelTitle}>
+            <KeyRound size={18} />
+            <div>
+              <h2>Mot de passe</h2>
+              <p>Renouveler les identifiants de connexion.</p>
+            </div>
+          </div>
           {message && <div className={styles.message}>{message}</div>}
           {error && <div className={styles.error}>{error}</div>}
 
