@@ -25,6 +25,14 @@ frontend/dist/
 frontend/build/
 template/
 
+# Livrables locaux / captures / brouillons
+AUDIT_COMPLET_APPLICATION.md
+DOSSIER_REFONTE_UI_UX.md
+MODELE_DONNEES.sql
+artifacts/
+backend/backups/
+image*.png
+
 # OS / editeur
 .vscode/
 .idea/
