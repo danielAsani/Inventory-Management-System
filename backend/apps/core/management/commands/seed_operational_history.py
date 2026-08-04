@@ -90,13 +90,13 @@ class Command(BaseCommand):
 
     def _seed_catalogue(self, context):
         familles = [
-            ("HIST-ELEC", "Equipements electriques", "Materiels et accessoires electriques"),
-            ("HIST-INFO", "Materiel informatique", "Postes, serveurs et accessoires IT"),
-            ("HIST-RESEAU", "Reseaux et telecommunications", "Equipements reseaux et telecom"),
-            ("HIST-SEC", "Securite et protection", "EPI, controle et securite"),
-            ("HIST-OUT", "Outillage technique", "Outils de maintenance et exploitation"),
-            ("HIST-BUR", "Fournitures de bureau", "Consommables administratifs"),
-            ("HIST-AUTO", "Charroi et accessoires", "Pieces et accessoires vehicules"),
+            ("FAM-ELEC", "Equipements electriques", "Materiels et accessoires electriques"),
+            ("FAM-INFO", "Materiel informatique", "Postes, serveurs et accessoires IT"),
+            ("FAM-RESEAU", "Reseaux et telecommunications", "Equipements reseaux et telecom"),
+            ("FAM-SEC", "Securite et protection", "EPI, controle et securite"),
+            ("FAM-OUT", "Outillage technique", "Outils de maintenance et exploitation"),
+            ("FAM-BUR", "Fournitures de bureau", "Consommables administratifs"),
+            ("FAM-AUTO", "Charroi et accessoires", "Pieces et accessoires vehicules"),
         ]
         for code, name, description in familles:
             famille, _ = Famille.objects.update_or_create(
@@ -106,23 +106,23 @@ class Command(BaseCommand):
             context["familles"].append(famille)
 
         categories = [
-            ("HIST-TRANSFO", "Transformateurs", "HIST-ELEC"),
-            ("HIST-DISJ", "Disjoncteurs", "HIST-ELEC"),
-            ("HIST-CABLE", "Cables electriques", "HIST-ELEC"),
-            ("HIST-COMPTEUR", "Compteurs electriques", "HIST-ELEC"),
-            ("HIST-PC", "Ordinateurs portables", "HIST-INFO"),
-            ("HIST-IMP", "Imprimantes", "HIST-INFO"),
-            ("HIST-SRV", "Serveurs", "HIST-INFO"),
-            ("HIST-OND", "Onduleurs", "HIST-INFO"),
-            ("HIST-ROUT", "Routeurs et switches", "HIST-RESEAU"),
-            ("HIST-RADIO", "Radios et terminaux", "HIST-RESEAU"),
-            ("HIST-CASQ", "Casques et EPI", "HIST-SEC"),
-            ("HIST-EXT", "Extincteurs", "HIST-SEC"),
-            ("HIST-OUTIL", "Outils specialises", "HIST-OUT"),
-            ("HIST-PAP", "Papeterie", "HIST-BUR"),
-            ("HIST-TONER", "Toners et cartouches", "HIST-BUR"),
-            ("HIST-PNEU", "Pneumatiques", "HIST-AUTO"),
-            ("HIST-BATT", "Batteries", "HIST-AUTO"),
+            ("HIST-TRANSFO", "Transformateurs", "FAM-ELEC"),
+            ("HIST-DISJ", "Disjoncteurs", "FAM-ELEC"),
+            ("HIST-CABLE", "Cables electriques", "FAM-ELEC"),
+            ("HIST-COMPTEUR", "Compteurs electriques", "FAM-ELEC"),
+            ("HIST-PC", "Ordinateurs portables", "FAM-INFO"),
+            ("HIST-IMP", "Imprimantes", "FAM-INFO"),
+            ("HIST-SRV", "Serveurs", "FAM-INFO"),
+            ("HIST-OND", "Onduleurs", "FAM-INFO"),
+            ("HIST-ROUT", "Routeurs et switches", "FAM-RESEAU"),
+            ("HIST-RADIO", "Radios et terminaux", "FAM-RESEAU"),
+            ("HIST-CASQ", "Casques et EPI", "FAM-SEC"),
+            ("HIST-EXT", "Extincteurs", "FAM-SEC"),
+            ("HIST-OUTIL", "Outils specialises", "FAM-OUT"),
+            ("HIST-PAP", "Papeterie", "FAM-BUR"),
+            ("HIST-TONER", "Toners et cartouches", "FAM-BUR"),
+            ("HIST-PNEU", "Pneumatiques", "FAM-AUTO"),
+            ("HIST-BATT", "Batteries", "FAM-AUTO"),
         ]
         familles_by_code = {famille.code_famille: famille for famille in context["familles"]}
         for code, name, family_code in categories:
@@ -233,7 +233,8 @@ class Command(BaseCommand):
                     "devise": "USD",
                     "duree_garantie_mois": warranty_months,
                     "garantie_fin": purchase_date + timedelta(days=30 * warranty_months),
-                    "etat": Materiel.EtatMateriel.EN_STOCK,
+                    "etat": Materiel.EtatMateriel.BON,
+                    "statut_stock": Materiel.StatutStock.EN_STOCK,
                     "code_barre": f"BAR-HIST-{index:05d}",
                     "qr_code": f"QR-HIST-{index:05d}",
                     "date_enregistrement": purchase_date,
@@ -367,11 +368,11 @@ class Command(BaseCommand):
                     observation=f"HIST-Affectation au service {service.nom_service[:80]}.",
                 )
                 if affectation.statut == Affectation.StatutAffectation.ACTIVE:
-                    material.etat = Materiel.EtatMateriel.AFFECTE
+                    material.statut_stock = Materiel.StatutStock.AFFECTE
                     active_count += 1
                 else:
-                    material.etat = Materiel.EtatMateriel.EN_STOCK
-                material.save(update_fields=["etat"])
+                    material.statut_stock = Materiel.StatutStock.EN_STOCK
+                material.save(update_fields=["statut_stock"])
 
     def _seed_demandes(self, context):
         users = context["users"]
@@ -451,7 +452,7 @@ class Command(BaseCommand):
                 Entretien.StatutEntretien.TERMINE,
                 Entretien.StatutEntretien.TERMINE,
                 Entretien.StatutEntretien.TERMINE,
-                Entretien.StatutEntretien.PLANIFIE,
+                Entretien.StatutEntretien.EN_COURS,
                 Entretien.StatutEntretien.ANNULE,
             ])
             end_real = date_entretien + timedelta(days=random.randint(1, 4)) if status == Entretien.StatutEntretien.TERMINE else None

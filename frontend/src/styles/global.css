@@ -1,7 +1,7 @@
 @import "./variables.css";
 @import "./utilities.css";
 
-* ,
+*,
 *::before,
 *::after {
   box-sizing: border-box;
@@ -17,9 +17,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background:
-    radial-gradient(circle at 90% -10%, rgb(19 0 255 / 5%), transparent 25rem),
-    var(--color-canvas);
+  background: var(--color-canvas);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: var(--font-size-base);
@@ -70,23 +68,23 @@ h4 {
   color: var(--color-text);
   font-weight: 650;
   line-height: 1.2;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
-h1 { font-size: clamp(1.875rem, 3vw, 2.5rem); }
+h1 { font-size: var(--font-size-3xl); }
 h2 { font-size: var(--font-size-2xl); }
-h3 { font-size: var(--font-size-xl); }
+h3 { font-size: var(--font-size-lg); }
 
 input,
 textarea,
 select {
   width: 100%;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
 input::placeholder,
@@ -94,15 +92,21 @@ textarea::placeholder {
   color: var(--color-text-subtle);
 }
 
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--color-border-strong);
+}
+
 input:focus,
 textarea:focus,
 select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px var(--color-focus-ring);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 ::selection {
-  background: rgb(19 0 255 / 16%);
+  background: rgb(31 94 255 / 16%);
   color: var(--color-text);
 }
 

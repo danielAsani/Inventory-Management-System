@@ -1,4 +1,22 @@
-.layout { display: flex; min-height: 100vh; background: var(--color-canvas); }
-.main { min-width: 0; flex: 1; }
-.content { width: min(100%, 100rem); margin: 0 auto; padding: var(--space-8); }
-@media (max-width: 600px) { .content { padding: var(--space-6) var(--space-4); } }
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-canvas);
+}
+
+.main {
+  min-width: 0;
+  flex: 1;
+}
+
+.content {
+  width: min(100%, var(--content-max-width));
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-8) var(--space-10);
+}
+
+@media (max-width: 800px) {
+  .content {
+    padding: var(--space-5) var(--space-4) var(--space-8);
+  }
+}

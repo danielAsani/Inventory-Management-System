@@ -1,0 +1,289 @@
+.inlineCode {
+  display: inline-grid;
+  max-width: 100%;
+  gap: 0.35rem;
+  justify-items: start;
+}
+
+.barcodeSvg {
+  display: block;
+  width: min(100%, 16rem);
+  height: auto;
+  background: #ffffff;
+}
+
+.qrImage {
+  display: block;
+  width: 5.75rem;
+  height: 5.75rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.inlineCode small {
+  max-width: 16rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-left: 0.35rem solid #0f766e;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.panelHeader div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.panelHeader span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: #0f766e;
+  font-size: var(--font-size-xs);
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.panelHeader h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+  font-weight: 900;
+}
+
+.printButton {
+  display: inline-flex;
+  min-height: 2.4rem;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: #0f766e;
+  color: #ffffff;
+  font-size: var(--font-size-sm);
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.previewGrid {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1fr) minmax(13rem, 0.45fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.previewCard {
+  display: grid;
+  min-height: 12rem;
+  place-items: center;
+  padding: var(--space-4);
+  border: 1px dashed #94a3b8;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  overflow: auto;
+}
+
+.controls {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.controls label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.controls span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.controls select,
+.controls input {
+  width: 100%;
+  min-height: 2.45rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 750;
+}
+
+.printSheet {
+  display: none;
+}
+
+.printLabel {
+  position: relative;
+  display: grid;
+  grid-template:
+    "info qr" 1fr
+    "barcode qr" auto
+    "meta meta" auto / minmax(0, 1fr) auto;
+  width: var(--label-width);
+  height: var(--label-height);
+  gap: 1.2mm;
+  padding: 2mm;
+  border: 0.2mm solid #111827;
+  background: #ffffff;
+  color: #111827;
+  overflow: hidden;
+  break-after: page;
+  page-break-after: always;
+}
+
+.labelInfo {
+  grid-area: info;
+  display: grid;
+  align-content: start;
+  gap: 0.5mm;
+  min-width: 0;
+}
+
+.labelInfo span {
+  color: #475569;
+  font-size: 5.5pt;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.labelInfo strong {
+  color: #111827;
+  font-size: 10pt;
+  font-weight: 900;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.labelInfo small,
+.labelInfo em {
+  color: #334155;
+  font-size: 6.5pt;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.labelBarcode {
+  grid-area: barcode;
+  min-width: 0;
+  align-self: end;
+}
+
+.labelBarcode .barcodeSvg {
+  width: 100%;
+  max-height: 13mm;
+}
+
+.labelQr {
+  grid-area: qr;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  width: calc(var(--label-height) - 7mm);
+  min-width: 18mm;
+}
+
+.labelQr .qrImage {
+  width: min(100%, 22mm);
+  height: auto;
+  border: 0;
+}
+
+.labelQr small {
+  max-width: 22mm;
+  color: #111827;
+  font-size: 5pt;
+  text-align: center;
+}
+
+.labelMeta {
+  grid-area: meta;
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+  border-top: 0.2mm solid #cbd5e1;
+  padding-top: 0.8mm;
+  color: #475569;
+  font-size: 5.5pt;
+  font-weight: 850;
+  line-height: 1;
+  overflow: hidden;
+  text-transform: uppercase;
+}
+
+.labelMeta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 780px) {
+  .panelHeader,
+  .previewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .panelHeader {
+    display: grid;
+  }
+
+  .printButton {
+    width: 100%;
+  }
+}
+
+@media print {
+  :global(body.label-print-mode *) {
+    visibility: hidden !important;
+  }
+
+  :global(body.label-print-mode .label-print-sheet),
+  :global(body.label-print-mode .label-print-sheet *) {
+    visibility: visible !important;
+  }
+
+  :global(body.label-print-mode .label-print-sheet) {
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  :global(body.label-print-mode) {
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .printLabel {
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+}

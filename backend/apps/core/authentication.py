@@ -17,7 +17,6 @@ def add_user_claims(token, user):
     token["scope_type"] = user.scope_type
     token["id_departement"] = _scope_id(user, "id_departement")
     token["id_direction"] = _scope_id(user, "id_direction")
-    token["id_service"] = _scope_id(user, "id_service")
     token["id_magasin"] = _scope_id(user, "id_magasin")
     return token
 
@@ -45,7 +44,7 @@ def get_active_user_from_payload(payload):
     except Users.DoesNotExist:
         raise AuthenticationFailed("Token invalide ou expire.")
 
-    if not user.statut:
+    if not user.is_active:
         raise AuthenticationFailed("Utilisateur inactif.")
 
     if not user.id_role or not user.id_role.statut:

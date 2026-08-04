@@ -1,7 +1,7 @@
 
 from django.db import models
-from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 
 class Role(models.Model):
     class RoleCode(models.TextChoices):
@@ -23,26 +23,54 @@ class Role(models.Model):
 
 
 
-class Users(models.Model):
+class UsersManager(BaseUserManager):
+    def create_user(self, matricule, password=None, **extra_fields):
+        if not matricule:
+            raise ValueError("Le matricule est obligatoire.")
+
+        user = self.model(matricule=matricule, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, matricule, password=None, **extra_fields):
+        role, _ = Role.objects.get_or_create(
+            code_role=Role.RoleCode.ADMIN,
+            defaults={
+                "nom_role": "Administrateur",
+                "description": "Role administrateur Django.",
+                "statut": True,
+            },
+        )
+        extra_fields.setdefault("nom_users", "Administrateur Django")
+        extra_fields.setdefault("id_role", role)
+        extra_fields.setdefault("scope_type", Users.ScopeType.GENERAL)
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Un superuser doit avoir is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Un superuser doit avoir is_superuser=True.")
+
+        return self.create_user(matricule, password, **extra_fields)
+
+
+class Users(AbstractUser):
     class ScopeType(models.TextChoices):
         GENERAL = "GENERAL", "Général"
         DEPARTEMENT = "DEPARTEMENT", "Département"
         DIRECTION = "DIRECTION", "Direction"
-        SERVICE = "SERVICE", "Service"
         MAGASIN = "MAGASIN", "Magasin"
 
     id_users = models.AutoField(primary_key=True)
+    username = None
 
     email = models.EmailField(max_length=100, unique=True, blank=True, null=True)
     nom_users = models.CharField(max_length=100)
     matricule = models.CharField(max_length=30, unique=True)
     telephone = models.CharField(max_length=20, blank=True, null=True)
-
-    password_hash = models.CharField(max_length=255)
-
-    statut = models.BooleanField(default=True)
-    dernier_login = models.DateTimeField(blank=True, null=True)
-    date_ajout = models.DateField(default=timezone.localdate)
 
     id_role = models.ForeignKey(
         Role,
@@ -106,6 +134,11 @@ class Users(models.Model):
     def is_anonymous(self):
         return False
 
+    USERNAME_FIELD = "matricule"
+    REQUIRED_FIELDS = ["nom_users"]
+
+    objects = UsersManager()
+
     class Meta:
         db_table = "users"
 
@@ -118,9 +151,6 @@ class Users(models.Model):
         if self.scope_type == self.ScopeType.DIRECTION and not self.id_direction:
             errors["id_direction"] = "La direction est obligatoire pour un scope DIRECTION."
 
-        if self.scope_type == self.ScopeType.SERVICE and not self.id_service:
-            errors["id_service"] = "Le service est obligatoire pour un scope SERVICE."
-
         if self.scope_type == self.ScopeType.MAGASIN and not self.id_magasin:
             errors["id_magasin"] = "Le magasin est obligatoire pour un scope MAGASIN."
 
@@ -132,15 +162,20 @@ class Users(models.Model):
             queryset = Users.objects.filter(
                 id_role=self.id_role,
                 scope_type=self.ScopeType.GENERAL,
-                statut=True,
+                is_active=True,
             )
             if self.pk:
                 queryset = queryset.exclude(pk=self.pk)
-            if self.statut and queryset.exists():
+            if self.is_active and queryset.exists():
                 errors["scope_type"] = "Il ne peut y avoir qu'un seul magasinier general actif."
 
         if errors:
             raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        if self.matricule:
+            self.matricule = self.matricule.upper()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.nom_users} - {self.matricule}"

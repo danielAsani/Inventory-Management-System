@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, ChevronDown, LogOut, Menu, PanelLeftClose, Search, Settings, UserRound, X } from "lucide-react";
+import { Bell, ChevronDown, KeyRound, LogOut, Menu, PanelLeftClose, Search, UserRound, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../../api/apiClient";
 import { getApiErrorMessage } from "../../utils/apiErrors";
@@ -241,8 +241,8 @@ export default function Header({ user, onToggleSidebar, onLogout }) {
             <section className={`${styles.dropdown} ${styles.profileMenu}`} aria-label="Menu utilisateur">
               <div className={styles.profileSummary}><span className={styles.avatar} aria-hidden="true">{initials(user?.nom_users)}</span><span><strong>{user?.nom_users || "Utilisateur"}</strong><small>{user?.email || user?.matricule}</small></span></div>
               <div className={styles.menuLinks}>
-                <button type="button"><UserRound size={16} /> Mon profil</button>
-                <button type="button"><Settings size={16} /> Preferences</button>
+                <button type="button" onClick={() => { setIsProfileOpen(false); navigate("/profile"); }}><UserRound size={16} /> Mon profil</button>
+                <button type="button" onClick={() => { setIsProfileOpen(false); navigate("/profile"); }}><KeyRound size={16} /> Mot de passe</button>
               </div>
               <button type="button" className={styles.logoutMenuButton} onClick={onLogout}><LogOut size={16} /> Se deconnecter</button>
             </section>

@@ -1,197 +1,142 @@
 .page {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-5);
+  padding-bottom: var(--space-2);
 }
 
 .heading p {
-  max-width: 45rem;
+  max-width: 48rem;
   color: var(--color-text-muted);
 }
 
 .eyebrow {
   margin-bottom: var(--space-2);
-  color: var(--color-primary) !important;
+  color: var(--color-text-subtle) !important;
   font-size: var(--font-size-xs);
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .primaryButton {
   display: inline-flex;
-  height: 2.5rem;
+  min-height: 2.35rem;
   align-items: center;
   gap: var(--space-2);
-  padding: 0 var(--space-4);
-  border: 0;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-text);
   border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  font-weight: 750;
+  background: var(--color-text);
+  color: #ffffff;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
   white-space: nowrap;
 }
 
-.toolbar {
+.primaryButton:hover {
+  background: #000000;
+}
+
+.toolbar,
+.sortPanel,
+.quickFilters {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-4);
+  padding: var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
 }
 
 .toolbar label {
   display: flex;
-  width: min(100%, 28rem);
+  width: min(100%, 32rem);
   align-items: center;
   gap: var(--space-2);
   color: var(--color-text-subtle);
 }
 
 .toolbar input {
-  height: 2.4rem;
+  height: 2.35rem;
   padding: 0 var(--space-3);
+  border-color: transparent;
+  background: var(--color-surface-muted);
 }
 
 .viewSwitch {
   display: inline-flex;
   flex: 0 0 auto;
-  gap: var(--space-1);
-  padding: var(--space-1);
+  gap: 0.125rem;
+  padding: 0.125rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface-subtle);
 }
 
-.viewSwitch button {
+.viewSwitch button,
+.sortChips button,
+.filterChips button {
   display: inline-flex;
-  height: 2.25rem;
+  min-height: 2.1rem;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   padding: 0 var(--space-3);
-  border: 0;
-  border-radius: calc(var(--radius-sm) - 0.125rem);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
-  font-weight: 750;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 .viewSwitch button:hover,
-.viewSwitch .activeView {
+.sortChips button:hover,
+.filterChips button:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.viewSwitch .activeView,
+.sortChips .activeSort,
+.filterChips .activeFilter {
+  border-color: var(--color-border);
   background: var(--color-surface);
   color: var(--color-text);
   box-shadow: var(--shadow-xs);
 }
 
-.sortPanel {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-}
-
-.sortSummary {
-  display: grid;
-  flex: 0 0 auto;
-  gap: var(--space-1);
-}
-
-.sortSummary span {
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-  font-weight: 850;
-}
-
-.sortSummary small {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
-.sortChips {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
-.sortChips button {
-  display: inline-flex;
-  min-height: 2.25rem;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: 750;
-}
-
-.sortChips button:hover {
-  border-color: var(--color-border-strong);
-  color: var(--color-text);
-}
-
-.sortChips .activeSort {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  box-shadow: var(--shadow-xs);
-}
-
-.sortDirectionIcon {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  color: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: 850;
-}
-
-.quickFilters {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-}
-
+.sortSummary,
 .quickFilterSummary {
   display: grid;
   flex: 0 0 auto;
-  gap: var(--space-1);
+  gap: 0.05rem;
 }
 
+.sortSummary span,
 .quickFilterSummary span {
   color: var(--color-text);
   font-size: var(--font-size-sm);
-  font-weight: 850;
+  font-weight: 700;
 }
 
+.sortSummary small,
 .quickFilterSummary small {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
 
+.sortChips,
 .filterChips {
   display: flex;
   flex: 1;
@@ -200,27 +145,17 @@
   gap: var(--space-2);
 }
 
-.filterChips button {
-  min-height: 2.25rem;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
+.feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgb(21 127 63 / 18%);
   border-radius: var(--radius-sm);
-  background: var(--color-surface-subtle);
-  color: var(--color-text-muted);
+  background: var(--color-success-soft);
+  color: var(--color-success);
   font-size: var(--font-size-sm);
-  font-weight: 800;
-}
-
-.filterChips button:hover {
-  border-color: var(--color-border-strong);
-  color: var(--color-text);
-}
-
-.filterChips .activeFilter {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  box-shadow: var(--shadow-xs);
+  font-weight: 700;
 }
 
 .modalBackdrop {
@@ -230,19 +165,24 @@
   display: grid;
   place-items: center;
   padding: var(--space-6);
-  background: rgb(15 23 42 / 45%);
+  background: rgb(35 35 35 / 38%);
 }
 
 .modal {
   display: grid;
-  width: min(58rem, 100%);
+  width: min(54rem, 100%);
   max-height: calc(100vh - 3rem);
   gap: var(--space-5);
   overflow-y: auto;
   padding: var(--space-5);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: var(--shadow-lg);
+}
+
+.wizardModal {
+  width: min(72rem, 100%);
 }
 
 .modal header {
@@ -250,24 +190,165 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal header p {
+  margin-top: var(--space-1);
   color: var(--color-text-muted);
 }
 
 .modal header button {
+  display: grid;
   width: 2rem;
   height: 2rem;
+  place-items: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text-muted);
 }
 
-.detailModal {
-  width: min(64rem, 100%);
+.modal header button:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
 }
+
+.detailModal {
+  width: min(68rem, 100%);
+}
+
+.dialogModal {
+  width: min(32rem, 100%);
+}
+
+.dialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.dialogSecondary,
+.dialogPrimary {
+  display: inline-flex;
+  min-height: 2.35rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.dialogSecondary {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.dialogPrimary {
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: #ffffff;
+}
+
+.dialogPrimary.danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+}
+
+.promptForm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.promptForm label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.promptForm label span {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.promptForm textarea {
+  min-height: 7rem;
+  padding: var(--space-3);
+  resize: vertical;
+}
+
+.promptForm small {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.detailSummary {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+.detailSummary span,
+.detailItem span,
+.detailHero span {
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detailSummary strong {
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: var(--font-size-2xl);
+  font-weight: 750;
+}
+
+.detailSummary small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.detailSections {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.detailGroup {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.detailGroup h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 750;
+}
+
+.blue,
+.green,
+.orange,
+.slate {
+  border-left: 3px solid var(--color-border-strong);
+}
+
+.blue { border-left-color: var(--color-info); }
+.green { border-left-color: var(--color-success); }
+.orange { border-left-color: var(--color-warning); }
+.slate { border-left-color: var(--color-border-strong); }
 
 .detailGrid {
   display: grid;
@@ -275,59 +356,142 @@
   gap: var(--space-3);
 }
 
-.detailHero {
-  grid-column: 1 / -1;
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-5);
-  border: 1px solid #1f2937;
-  border-radius: var(--radius-sm);
-  background: #111827;
-  color: #ffffff;
-}
-
-.detailHero span,
-.detailItem span {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.detailHero span {
-  color: #b6c4d6;
-}
-
-.detailHero strong {
-  color: #ffffff;
-  font-size: var(--font-size-2xl);
-}
-
+.detailHero,
 .detailItem {
   display: grid;
   gap: var(--space-2);
-  min-height: 5.25rem;
-  padding: var(--space-4);
+  min-width: 0;
+  padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface-subtle);
 }
 
-.detailItem strong {
+.detailHero,
+.detailItemWide {
+  grid-column: 1 / -1;
+}
+
+.detailHero strong {
+  font-size: var(--font-size-xl);
+}
+
+.detailValue {
+  white-space: normal;
   overflow-wrap: anywhere;
   color: var(--color-text);
   font-size: var(--font-size-sm);
-  font-weight: 750;
+  font-weight: 600;
 }
 
-@media (max-width: 700px) {
-  .heading {
+.detailValue > span {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.emptyDetail {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.detailList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.detailList span {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.detailMiniTable {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.detailMiniHead,
+.detailMiniRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+}
+
+.detailMiniHead {
+  background: var(--color-surface-muted);
+}
+
+.detailMiniHead span,
+.detailMiniRow span {
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border-right: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+.detailMiniRow + .detailMiniRow {
+  border-top: 1px solid var(--color-border);
+}
+
+.detailActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.detailActionButton {
+  display: inline-flex;
+  min-height: 2.35rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.detailActionButton:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-muted);
+}
+
+.actiondanger {
+  border-color: rgb(180 35 24 / 28%);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.actionwarning {
+  border-color: rgb(154 103 0 / 28%);
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.actionmuted {
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 900px) {
+  .toolbar,
+  .sortPanel,
+  .quickFilters {
+    align-items: stretch;
     flex-direction: column;
   }
 
-  .toolbar {
-    align-items: stretch;
-    flex-direction: column;
+  .toolbar label {
+    width: 100%;
   }
 
   .viewSwitch {
@@ -336,37 +500,29 @@
 
   .viewSwitch button {
     flex: 1;
-    justify-content: center;
   }
 
-  .sortPanel {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .sortChips {
-    justify-content: flex-start;
-  }
-
-  .sortChips button {
-    flex: 1 1 auto;
-    justify-content: center;
-  }
-
-  .quickFilters {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
+  .sortChips,
   .filterChips {
     justify-content: flex-start;
   }
 
-  .filterChips button {
-    flex: 1 1 auto;
-  }
-
   .detailGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .heading {
+    flex-direction: column;
+  }
+
+  .primaryButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modalBackdrop {
+    padding: var(--space-3);
   }
 }

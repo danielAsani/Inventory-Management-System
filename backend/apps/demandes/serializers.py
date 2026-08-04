@@ -5,7 +5,6 @@ from apps.core.permissions import ROLE_ADMIN, ROLE_GESTION
 from apps.core.serializer_validators import (
     SanitizedModelSerializer,
     validate_choice,
-    validate_not_blank,
     validate_not_future,
     validate_positive,
 )
@@ -22,6 +21,14 @@ DEMANDE_TYPES = {"ACHAT", "REAPPROVISIONNEMENT", "REPARATION", "AUTRE"}
 
 
 class DemandeSerializer(SanitizedModelSerializer):
+    departement_nom = serializers.CharField(source="id_departement.nom_departement", read_only=True)
+    direction_nom = serializers.CharField(source="id_direction_demandeuse.nom_direction", read_only=True)
+    demandeur_nom = serializers.CharField(source="id_demandeur.nom_users", read_only=True)
+    validateur_departement_nom = serializers.CharField(source="id_validateur_departement.nom_users", read_only=True)
+    magasinier_finalisateur_nom = serializers.CharField(source="id_magasinier_finalisateur.nom_users", read_only=True)
+    materiel_label = serializers.SerializerMethodField()
+    consommable_label = serializers.SerializerMethodField()
+
     class Meta:
         model = Demande
         fields = "__all__"
@@ -30,6 +37,7 @@ class DemandeSerializer(SanitizedModelSerializer):
             "id_direction_demandeuse": {"required": False},
         }
         read_only_fields = [
+            "code_demande",
             "id_demandeur",
             "id_validateur_departement",
             "date_validation_departement",
@@ -37,8 +45,19 @@ class DemandeSerializer(SanitizedModelSerializer):
             "date_finalisation",
         ]
 
-    def validate_code_demande(self, value):
-        return validate_not_blank(value, "Le code de la demande ne peut pas etre vide.")
+    def get_materiel_label(self, obj):
+        if not obj.id_materiel:
+            return "-"
+        materiel = obj.id_materiel
+        modele = f" {materiel.modele}" if materiel.modele else ""
+        return f"{materiel.code_materiel} - {materiel.marque}{modele}"
+
+    def get_consommable_label(self, obj):
+        if not obj.id_consommable:
+            return "-"
+        consommable = obj.id_consommable
+        categorie = consommable.id_categorie.nom_categorie if consommable.id_categorie_id else "-"
+        return f"{consommable.code_consommable} - {consommable.nom_consommable} ({categorie})"
 
     def validate_type_demande(self, value):
         return validate_choice(
@@ -67,9 +86,6 @@ class DemandeSerializer(SanitizedModelSerializer):
         departement = attrs.get("id_departement") or getattr(instance, "id_departement", None)
         direction = attrs.get("id_direction_demandeuse") or getattr(
             instance, "id_direction_demandeuse", None
-        )
-        service = attrs.get("id_service_destinataire") or getattr(
-            instance, "id_service_destinataire", None
         )
         type_demande = attrs.get("type_demande") or getattr(instance, "type_demande", None)
         materiel = attrs.get("id_materiel") or getattr(instance, "id_materiel", None)
@@ -117,15 +133,6 @@ class DemandeSerializer(SanitizedModelSerializer):
                     }
                 )
 
-            if service and service.id_direction_id != user_direction.id_direction:
-                raise serializers.ValidationError(
-                    {
-                        "id_service_destinataire": (
-                            "Le service destinataire doit appartenir a la direction connectee."
-                        )
-                    }
-                )
-
         if instance is not None and user and not is_admin:
             direction = direction or instance.id_direction_demandeuse
             if (
@@ -143,24 +150,6 @@ class DemandeSerializer(SanitizedModelSerializer):
                 {
                     "id_direction_demandeuse": (
                         "La direction demandeuse doit appartenir au departement choisi."
-                    )
-                }
-            )
-
-        if service and direction and service.id_direction_id != direction.id_direction:
-            raise serializers.ValidationError(
-                {
-                    "id_service_destinataire": (
-                        "Le service destinataire doit appartenir a la direction demandeuse."
-                    )
-                }
-            )
-
-        if service and departement and service.id_direction.id_departement_id != departement.id_departement:
-            raise serializers.ValidationError(
-                {
-                    "id_service_destinataire": (
-                        "Le service destinataire doit appartenir au departement choisi."
                     )
                 }
             )
@@ -184,5 +173,32 @@ class DemandeSerializer(SanitizedModelSerializer):
             raise serializers.ValidationError(
                 {"id_consommable": "Une demande de reapprovisionnement doit indiquer le consommable concerne."}
             )
+
+        open_statuses = {
+            Demande.StatutDemande.EN_ATTENTE_DEPARTEMENT,
+            Demande.StatutDemande.EN_TRAITEMENT_MAGASIN,
+        }
+        duplicate_query = Demande.objects.filter(
+            statut__in=open_statuses,
+            id_departement=departement,
+            id_direction_demandeuse=direction,
+            id_service_destinataire=None,
+            type_demande=type_demande,
+        )
+        attrs["id_service_destinataire"] = None
+        if instance:
+            duplicate_query = duplicate_query.exclude(pk=instance.pk)
+
+        if type_demande == Demande.TypeDemande.REPARATION and materiel:
+            if duplicate_query.filter(id_materiel=materiel).exists():
+                raise serializers.ValidationError(
+                    {"id_materiel": "Une demande ouverte existe deja pour ce materiel."}
+                )
+
+        if type_demande == Demande.TypeDemande.REAPPROVISIONNEMENT and consommable:
+            if duplicate_query.filter(id_consommable=consommable).exists():
+                raise serializers.ValidationError(
+                    {"id_consommable": "Une demande ouverte existe deja pour ce consommable."}
+                )
 
         return attrs

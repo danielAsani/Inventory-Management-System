@@ -29,6 +29,27 @@ def validate_not_blank(value, message):
     return value
 
 
+def validate_unique_text(model, field_name, value, message, instance=None, filters=None):
+    value = clean_text(value)
+    if value in (None, ""):
+        return value
+
+    queryset = model.objects.filter(**{f"{field_name}__iexact": value})
+    if filters:
+        queryset = queryset.filter(**filters)
+    if instance and instance.pk:
+        queryset = queryset.exclude(pk=instance.pk)
+    if queryset.exists():
+        raise serializers.ValidationError(message)
+    return value
+
+
+def validate_unique_optional_text(model, field_name, value, message, instance=None, filters=None):
+    if value in (None, ""):
+        return value
+    return validate_unique_text(model, field_name, value, message, instance, filters)
+
+
 def validate_not_future(value, message):
     if value and value > timezone.localdate():
         raise serializers.ValidationError(message)

@@ -2,7 +2,9 @@ from django.db.models import F, Q, Sum
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.catalogue.models import Categorie, Famille, Fournisseur, UniteMesure
 from apps.core.permissions import READ_ALL_ROLES, RoleBasedPermission
+from apps.organisation.models import Departement, Direction
 from apps.operations.models import MouvementStock
 from apps.operations.serializers import MouvementStockSerializer
 from apps.stock.models import Consommable, Magasin, Materiel
@@ -44,11 +46,19 @@ class DashboardStatsView(APIView):
         return Response(
             {
                 "metrics": {
+                    "familles_total": Famille.objects.count(),
+                    "categories_total": Categorie.objects.count(),
+                    "unites_total": UniteMesure.objects.count(),
+                    "fournisseurs_total": Fournisseur.objects.count(),
+                    "departements_total": Departement.objects.count(),
+                    "directions_total": Direction.objects.count(),
+                    "magasins_total": magasins.count(),
                     "materiels_total": materiels.count(),
                     "consommables_total": consommables.count(),
+                    "references_total": materiels.count() + consommables.count(),
                     "stock_disponible": stock_total,
                     "stock_faible": stock_alerts.count(),
-                    "materiels_affectes": materiels.filter(etat=Materiel.EtatMateriel.AFFECTE).count(),
+                    "materiels_affectes": materiels.filter(statut_stock=Materiel.StatutStock.AFFECTE).count(),
                     "materiels_en_reparation": materiels.filter(
                         etat=Materiel.EtatMateriel.EN_REPARATION
                     ).count(),

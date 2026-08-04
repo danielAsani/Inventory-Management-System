@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 
+from apps.core.code_generation import generate_prefixed_code
+
 
 class Famille(models.Model):
     id_famille = models.AutoField(primary_key=True)
@@ -12,6 +14,13 @@ class Famille(models.Model):
 
     class Meta:
         db_table = "famille"
+
+    def save(self, *args, **kwargs):
+        if not self.code_famille:
+            self.code_famille = generate_prefixed_code(Famille, "code_famille", "FAM-")
+        else:
+            self.code_famille = self.code_famille.upper()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nom_famille
@@ -36,6 +45,13 @@ class Categorie(models.Model):
     class Meta:
         db_table = "categorie"
 
+    def save(self, *args, **kwargs):
+        if not self.code_categorie:
+            self.code_categorie = generate_prefixed_code(Categorie, "code_categorie", "CAT-")
+        else:
+            self.code_categorie = self.code_categorie.upper()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.nom_categorie
 
@@ -51,6 +67,13 @@ class UniteMesure(models.Model):
 
     def __str__(self):
         return self.symbole
+
+    def save(self, *args, **kwargs):
+        if self.code_unite:
+            self.code_unite = self.code_unite.upper()
+        if self.symbole:
+            self.symbole = self.symbole.upper()
+        super().save(*args, **kwargs)
 
 
 class Fournisseur(models.Model):
@@ -70,3 +93,10 @@ class Fournisseur(models.Model):
 
     def __str__(self):
         return self.nom_fournisseur
+
+    def save(self, *args, **kwargs):
+        if self.rccm:
+            self.rccm = self.rccm.upper()
+        if self.nif:
+            self.nif = self.nif.upper()
+        super().save(*args, **kwargs)

@@ -2,12 +2,13 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
+from apps.core.code_generation import generate_prefixed_code
+
 
 class Inventaire(models.Model):
     class EntiteType(models.TextChoices):
         DEPARTEMENT = "DEPARTEMENT", "Département"
         DIRECTION = "DIRECTION", "Direction"
-        SERVICE = "SERVICE", "Service"
         MAGASIN = "MAGASIN", "Magasin"
 
     class TypeInventaire(models.TextChoices):
@@ -56,10 +57,26 @@ class Inventaire(models.Model):
         related_name="inventaires_effectues"
     )
 
+    cree_par = models.ForeignKey(
+        "comptes.Users",
+        on_delete=models.SET_NULL,
+        db_column="cree_par",
+        blank=True,
+        null=True,
+        related_name="inventaires_crees",
+    )
+
+    effectue_par_libre = models.CharField(max_length=500, blank=True, null=True)
+
     observation = models.CharField(max_length=500, blank=True, null=True)
 
     class Meta:
         db_table = "inventaire"
+
+    def save(self, *args, **kwargs):
+        if not self.code_inventaire:
+            self.code_inventaire = generate_prefixed_code(Inventaire, "code_inventaire", "INV-")
+        super().save(*args, **kwargs)
 
     def clean(self):
         if self.date_fin and self.date_fin < self.date_debut:

@@ -1,10 +1,103 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from apps.organisation.accounts import ensure_department_account, ensure_direction_account
 from apps.organisation.models import Departement, Direction, Service
 
 
 DATA = [
+    {
+        "code": "DDK",
+        "name": "Departement de Distribution de Kinshasa",
+        "directions": [
+            {
+                "code": "DKN",
+                "name": "Direction Regionale de Kinshasa Nord",
+                "services": [
+                    ("DGR", "Division gestion reseaux"),
+                    ("DGC", "Division gestion clientele"),
+                    ("SAD", "Secretariat administratif"),
+                    ("CVS", "Centre de vente et service"),
+                ],
+            },
+            {
+                "code": "DKS",
+                "name": "Direction Regionale de Kinshasa Sud",
+                "services": [
+                    ("DGR", "Division gestion reseaux"),
+                    ("DGC", "Division gestion clientele"),
+                    ("SAD", "Secretariat administratif"),
+                    ("CVS", "Centre de vente et service"),
+                ],
+            },
+            {
+                "code": "DKE",
+                "name": "Direction Regionale de Kinshasa Est",
+                "services": [
+                    ("DGR", "Division gestion reseaux"),
+                    ("DGC", "Division gestion clientele"),
+                    ("SAD", "Secretariat administratif"),
+                    ("CVS", "Centre de vente et service"),
+                ],
+            },
+            {
+                "code": "DKO",
+                "name": "Direction Regionale de Kinshasa Ouest",
+                "services": [
+                    ("DGR", "Division gestion reseaux"),
+                    ("DGC", "Division gestion clientele"),
+                    ("SAD", "Secretariat administratif"),
+                    ("CVS", "Centre de vente et service"),
+                ],
+            },
+            {
+                "code": "DKC",
+                "name": "Direction Regionale de Kinshasa Centre",
+                "services": [
+                    ("DGR", "Division gestion reseaux"),
+                    ("DGC", "Division gestion clientele"),
+                    ("SAD", "Secretariat administratif"),
+                    ("CVS", "Centre de vente et service"),
+                ],
+            },
+            {
+                "code": "DOT",
+                "name": "Direction des Etudes Operationnelles et Travaux",
+                "services": [
+                    ("SET", "Service etudes techniques"),
+                    ("STR", "Service travaux reseaux"),
+                    ("SPL", "Service planification operationnelle"),
+                ],
+            },
+            {
+                "code": "DEM",
+                "name": "Direction Exploitation et Maintenance",
+                "services": [
+                    ("DEX", "Service exploitation"),
+                    ("SMT", "Service maintenance technique"),
+                    ("SIN", "Service interventions"),
+                ],
+            },
+            {
+                "code": "DAF",
+                "name": "Direction Administrative et Financiere",
+                "services": [
+                    ("SAD", "Service administration"),
+                    ("SFI", "Service finances"),
+                    ("SRH", "Service ressources humaines"),
+                ],
+            },
+            {
+                "code": "DCK",
+                "name": "Direction Commerciale de Kinshasa",
+                "services": [
+                    ("SCC", "Service commercial clients"),
+                    ("SFC", "Service facturation"),
+                    ("SRC", "Service recouvrement"),
+                ],
+            },
+        ],
+    },
     {
         "code": "DAD",
         "name": "Departement Administration et Pilotage",
@@ -205,10 +298,10 @@ DATA = [
                 ],
             },
             {
-                "code": "DDS",
-                "name": "Direction Donnees et Securite",
+                "code": "DSS",
+                "name": "Direction Systemes et Securite",
                 "services": [
-                    ("SAN", "Service analyse des donnees"),
+                    ("SAN", "Service audit numerique"),
                     ("SRP", "Service reporting et pilotage"),
                     ("SSI", "Service securite informatique"),
                     ("SCO", "Service conformite numerique"),
@@ -266,10 +359,10 @@ DATA = [
                 ],
             },
             {
-                "code": "DIN",
+                "code": "DING",
                 "name": "Direction Ingenierie",
                 "services": [
-                    ("SET", "Service etudes techniques"),
+                    ("SET", "Service architecture technique"),
                     ("SCP", "Service conception plans"),
                     ("SQS", "Service qualite sites"),
                 ],
@@ -356,7 +449,7 @@ DATA = [
 
 
 class Command(BaseCommand):
-    help = "Charge une organisation fictive et neutralise les anciennes entites si demande."
+    help = "Charge les departements, directions et services SNEL et neutralise les anciennes entites si demande."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -382,6 +475,7 @@ class Command(BaseCommand):
                         "statut": True,
                     },
                 )
+                ensure_department_account(departement)
                 counts["departements"] += 1
 
                 for direction_item in item["directions"]:
@@ -394,6 +488,7 @@ class Command(BaseCommand):
                             "statut": True,
                         },
                     )
+                    ensure_direction_account(direction)
                     counts["directions"] += 1
 
                     for service_code, service_name in direction_item["services"]:
@@ -410,7 +505,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                "Organisation fictive chargee: "
+                "Organisation SNEL chargee: "
                 f"{counts['departements']} departements, "
                 f"{counts['directions']} directions, "
                 f"{counts['services']} services."

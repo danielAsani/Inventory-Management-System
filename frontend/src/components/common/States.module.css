@@ -1,11 +1,11 @@
 .state {
   display: grid;
-  min-height: 10rem;
+  min-height: 12rem;
   place-items: center;
   gap: var(--space-3);
   padding: var(--space-8);
   border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text-muted);
   text-align: center;
@@ -16,9 +16,9 @@
 }
 
 .spinner {
-  width: 2rem;
-  height: 2rem;
-  border: 3px solid var(--color-border);
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2px solid var(--color-border);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 800ms linear infinite;
@@ -29,10 +29,11 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  border: 1px solid rgb(217 45 32 / 30%);
+  border: 1px solid rgb(180 35 24 / 24%);
   border-radius: var(--radius-sm);
   background: var(--color-danger-soft);
   color: var(--color-danger);
+  font-size: var(--font-size-sm);
 }
 
 .alert button {

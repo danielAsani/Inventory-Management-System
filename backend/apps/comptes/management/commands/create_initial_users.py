@@ -1,6 +1,5 @@
 import os
 
-from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand, CommandError
 
 from apps.comptes.models import Role, Users
@@ -60,7 +59,6 @@ class Command(BaseCommand):
                 "Definissez INITIAL_USER_PASSWORD ou passez --password pour creer les comptes initiaux."
             )
 
-        password_hash = make_password(options["password"])
         organisation = self._get_or_create_default_organisation()
 
         for item in INITIAL_USERS:
@@ -71,8 +69,8 @@ class Command(BaseCommand):
             if user:
                 user.email = item["email"]
                 user.nom_users = item["nom_users"]
-                user.password_hash = password_hash
-                user.statut = True
+                user.set_password(options["password"])
+                user.is_active = True
                 user.id_role = role
                 user.scope_type = item["scope_type"]
                 user.id_departement = scope_fields["id_departement"]
@@ -83,7 +81,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"{item['matricule']} mis a jour."))
                 continue
 
-            self._insert_user(item, role, password_hash, scope_fields)
+            self._insert_user(item, role, options["password"], scope_fields)
             self.stdout.write(self.style.SUCCESS(f"{item['matricule']} cree."))
 
         self._disable_legacy_roles_and_users()
@@ -104,7 +102,7 @@ class Command(BaseCommand):
         )
 
     def _disable_legacy_roles_and_users(self):
-        Users.objects.filter(matricule__in=LEGACY_USER_MATRICULES).update(statut=False)
+        Users.objects.filter(matricule__in=LEGACY_USER_MATRICULES).update(is_active=False)
         Role.objects.filter(code_role__in=LEGACY_ROLE_CODES).update(statut=False)
 
     def _get_or_create_default_organisation(self):
@@ -155,14 +153,14 @@ class Command(BaseCommand):
             fields["id_service"] = organisation["service"]
         return fields
 
-    def _insert_user(self, item, role, password_hash, scope_fields):
-        Users.objects.create(
+    def _insert_user(self, item, role, password, scope_fields):
+        Users.objects.create_user(
             email=item["email"],
             nom_users=item["nom_users"],
             matricule=item["matricule"],
             telephone="000000000",
-            password_hash=password_hash,
-            statut=True,
+            password=password,
+            is_active=True,
             id_role=role,
             scope_type=item["scope_type"],
             **scope_fields,

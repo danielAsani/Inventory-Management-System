@@ -14,6 +14,13 @@ class Departement(models.Model):
     def __str__(self):
         return self.nom_departement
 
+    def save(self, *args, **kwargs):
+        if self.code_departement:
+            self.code_departement = self.code_departement.upper()
+        if self.abreviation:
+            self.abreviation = self.abreviation.upper()
+        super().save(*args, **kwargs)
+
 
 class Direction(models.Model):
     id_direction = models.AutoField(primary_key=True)
@@ -42,6 +49,13 @@ class Direction(models.Model):
     def __str__(self):
         return self.nom_direction
 
+    def save(self, *args, **kwargs):
+        if self.code_direction:
+            self.code_direction = self.code_direction.upper()
+        if self.abreviation:
+            self.abreviation = self.abreviation.upper()
+        super().save(*args, **kwargs)
+
 
 class Service(models.Model):
     id_service = models.AutoField(primary_key=True)
@@ -69,3 +83,10 @@ class Service(models.Model):
 
     def __str__(self):
         return self.nom_service
+
+    def save(self, *args, **kwargs):
+        if self.code_service:
+            self.code_service = self.code_service.upper()
+        if self.abreviation:
+            self.abreviation = self.abreviation.upper()
+        super().save(*args, **kwargs)

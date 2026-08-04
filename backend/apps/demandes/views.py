@@ -6,6 +6,7 @@ from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from apps.core.deletion import CascadeProtectedDeleteMixin
 from apps.core.permissions import (
     GESTION_WRITE_ROLES,
     MAGASIN_WRITE_ROLES,
@@ -19,13 +20,14 @@ from .models import Demande
 from .serializers import DemandeSerializer
 
 
-class DemandeViewSet(ModelViewSet):
+class DemandeViewSet(CascadeProtectedDeleteMixin, ModelViewSet):
     permission_classes = [RoleBasedPermission]
     role_permissions = {
         "read": READ_ALL_ROLES,
         "create": GESTION_WRITE_ROLES,
         "update": GESTION_WRITE_ROLES,
         "partial_update": GESTION_WRITE_ROLES,
+        "destroy": {ROLE_ADMIN},
         "valider_departement": GESTION_WRITE_ROLES,
         "rejeter_departement": GESTION_WRITE_ROLES,
         "finaliser_magasin": MAGASIN_WRITE_ROLES,
@@ -34,10 +36,13 @@ class DemandeViewSet(ModelViewSet):
         Demande.objects.select_related(
             "id_departement",
             "id_direction_demandeuse",
-            "id_service_destinataire",
             "id_demandeur",
             "id_validateur_departement",
             "id_magasinier_finalisateur",
+            "id_materiel",
+            "id_materiel__id_categorie",
+            "id_consommable",
+            "id_consommable__id_categorie",
         )
         .all()
     )
@@ -57,24 +62,30 @@ class DemandeViewSet(ModelViewSet):
         user = self.request.user
 
         if user.role_code in {ROLE_ADMIN, ROLE_MAGASIN}:
-            return queryset
+            return self._apply_filters(queryset)
 
         if user.role_code != ROLE_GESTION:
             return queryset.none()
 
         if user.scope_type == "DIRECTION" and user.id_direction_id:
-            return queryset.filter(id_direction_demandeuse_id=user.id_direction_id)
+            return self._apply_filters(queryset.filter(id_direction_demandeuse_id=user.id_direction_id))
 
         if user.scope_type == "DEPARTEMENT" and user.id_departement_id:
-            return queryset.filter(id_departement_id=user.id_departement_id)
-
-        if user.scope_type == "SERVICE" and user.id_service_id:
-            return queryset.filter(id_service_destinataire_id=user.id_service_id)
+            return self._apply_filters(queryset.filter(id_departement_id=user.id_departement_id))
 
         if user.scope_type == "GENERAL":
-            return queryset
+            return self._apply_filters(queryset)
 
         return queryset.none()
+
+    def _apply_filters(self, queryset):
+        statut = self.request.query_params.get("statut")
+        type_demande = self.request.query_params.get("type_demande")
+        if statut:
+            queryset = queryset.filter(statut=statut)
+        if type_demande:
+            queryset = queryset.filter(type_demande=type_demande)
+        return queryset
 
     def perform_create(self, serializer):
         user = self.request.user

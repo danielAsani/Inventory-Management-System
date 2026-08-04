@@ -9,7 +9,6 @@ class Document(models.Model):
         BON_LIVRAISON = "BON_LIVRAISON", "Bon de livraison"
         GARANTIE = "GARANTIE", "Garantie"
         FICHE_TECHNIQUE = "FICHE_TECHNIQUE", "Fiche technique"
-        PHOTO = "PHOTO", "Photo"
         AUTRE = "AUTRE", "Autre"
 
     id_document = models.AutoField(primary_key=True)
@@ -48,10 +47,7 @@ class Document(models.Model):
     numero_document = models.CharField(max_length=100, blank=True, null=True)
     titre = models.CharField(max_length=255)
 
-    chemin_fichier = models.CharField(max_length=500, blank=True, null=True)
-    mime_type = models.CharField(max_length=100, blank=True, null=True)
-    taille_fichier_octets = models.PositiveBigIntegerField(blank=True, null=True)
-
+    chemin_fichier = models.FileField(upload_to="documents/", max_length=500, blank=True, null=True)
     date_upload = models.DateTimeField(default=timezone.now)
     observation = models.CharField(max_length=500, blank=True, null=True)
 

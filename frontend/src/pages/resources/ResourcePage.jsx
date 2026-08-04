@@ -1,10 +1,12 @@
-import { ArrowDown, ArrowUp, LayoutGrid, Plus, Search, Table2 } from "lucide-react";
+import { LayoutGrid, Plus, Search, Table2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { createResourceApi } from "../../api/resourceApi";
 import DataTable from "../../components/common/DataTable";
 import ErrorAlert from "../../components/common/ErrorAlert";
 import LoadingState from "../../components/common/LoadingState";
 import ResourceForm from "../../components/common/ResourceForm";
+import TraceabilityLabelPrinter, { BarcodeValue, QrValue } from "../../components/common/TraceabilityLabel";
 import { getResourceConfig, resourceConfigs } from "../../constants/resourceConfigs";
 import { useAuth } from "../../hooks/useAuth";
 import { getApiErrorMessage, normalizeFieldErrors } from "../../utils/apiErrors";
@@ -12,28 +14,77 @@ import { normalizePage } from "../../utils/pagination";
 import { canWrite } from "../../utils/permissions";
 import styles from "./ResourcePage.module.css";
 
-const perpage = 10;
-const CARD_FIRST_RESOURCES = new Set(["demandes", "materiels", "consommables", "documents"]);
+const perpage = 50;
+const AUTO_REFRESH_MS = 10000;
 const QUICK_FILTERS = {
-  demandes: {
-    label: "Type de demande",
-    field: "type_demande",
+  departements: {
+    label: "Statut",
+    field: "statut",
     options: [
-      { value: "ACHAT", label: "Achat" },
-      { value: "REAPPROVISIONNEMENT", label: "Reappro" },
-      { value: "REPARATION", label: "Reparation" },
-      { value: "AUTRE", label: "Autre" },
+      { value: "true", label: "Actif" },
+      { value: "false", label: "Inactif" },
+    ],
+  },
+  directions: {
+    label: "Departement",
+    field: "id_departement",
+    resource: "departements",
+  },
+  magasins: {
+    label: "Statut",
+    field: "statut",
+    options: [
+      { value: "true", label: "Actif" },
+      { value: "false", label: "Inactif" },
+    ],
+  },
+  familles: {
+    label: "Statut",
+    field: "statut",
+    options: [
+      { value: "true", label: "Actif" },
+      { value: "false", label: "Inactif" },
+    ],
+  },
+  categories: {
+    label: "Famille",
+    field: "id_famille",
+    resource: "familles",
+  },
+  fournisseurs: {
+    label: "Statut",
+    field: "statut",
+    options: [
+      { value: "true", label: "Actif" },
+      { value: "false", label: "Inactif" },
+    ],
+  },
+  demandes: {
+    label: "Statut",
+    field: "statut",
+    options: [
+      { value: "EN_ATTENTE_DEPARTEMENT", label: "En attente" },
+      { value: "EN_TRAITEMENT_MAGASIN", label: "Au magasin" },
+      { value: "TRAITEE", label: "Traitee" },
+      { value: "REJETEE", label: "Rejetee" },
+      { value: "ANNULEE", label: "Annulee" },
     ],
   },
   materiels: {
-    label: "Etat",
-    field: "etat",
+    label: "Situation",
+    field: "statut_stock",
     options: [
       { value: "EN_STOCK", label: "En stock" },
       { value: "AFFECTE", label: "Affecte" },
-      { value: "EN_PANNE", label: "En panne" },
-      { value: "EN_REPARATION", label: "En reparation" },
-      { value: "HORS_SERVICE", label: "Hors service" },
+      { value: "HORS_STOCK", label: "Hors stock" },
+    ],
+  },
+  consommables: {
+    label: "Statut",
+    field: "statut",
+    options: [
+      { value: "true", label: "Actif" },
+      { value: "false", label: "Inactif" },
     ],
   },
   mouvements: {
@@ -54,27 +105,25 @@ const QUICK_FILTERS = {
       { value: "BON_LIVRAISON", label: "Bon livraison" },
       { value: "GARANTIE", label: "Garantie" },
       { value: "FICHE_TECHNIQUE", label: "Fiche technique" },
-      { value: "PHOTO", label: "Photo" },
       { value: "AUTRE", label: "Autre" },
     ],
   },
   inventaires: {
-    label: "Type d'inventaire",
-    field: "type_inventaire",
+    label: "Statut",
+    field: "statut",
     options: [
-      { value: "GENERAL", label: "General" },
-      { value: "PARTIEL", label: "Partiel" },
-      { value: "PERIODIQUE", label: "Periodique" },
-      { value: "EXCEPTIONNEL", label: "Exceptionnel" },
+      { value: "EN_COURS", label: "En cours" },
+      { value: "TERMINE", label: "Termine" },
+      { value: "ANNULE", label: "Annule" },
     ],
   },
   entretiens: {
-    label: "Type d'entretien",
-    field: "type_entretien",
+    label: "Statut",
+    field: "statut",
     options: [
-      { value: "PREVENTIF", label: "Preventif" },
-      { value: "CORRECTIF", label: "Correctif" },
-      { value: "CONTROLE", label: "Controle" },
+      { value: "EN_COURS", label: "En cours" },
+      { value: "TERMINE", label: "Termine" },
+      { value: "ANNULE", label: "Annule" },
     ],
   },
   affectations: {
@@ -96,14 +145,53 @@ const QUICK_FILTERS = {
       { value: "ANNULEE", label: "Annulee" },
     ],
   },
+  users: {
+    label: "Statut",
+    field: "is_active",
+    options: [
+      { value: "true", label: "Actif" },
+      { value: "false", label: "Inactif" },
+    ],
+  },
+  roles: {
+    label: "Statut",
+    field: "statut",
+    options: [
+      { value: "true", label: "Actif" },
+      { value: "false", label: "Inactif" },
+    ],
+  },
 };
 
 function getOptionLabel(resourceKey, item) {
   const config = getResourceConfig(resourceKey);
   if (!config) return String(item.id || item.pk || "");
+  const upperCode = (value) => String(value || "").toUpperCase();
+  if (resourceKey === "materiels") {
+    return [
+      upperCode(item.code_materiel),
+      [item.marque, item.modele].filter(Boolean).join(" "),
+      item.categorie_nom,
+      item.etat,
+      item.statut_stock,
+    ].filter(Boolean).join(" - ");
+  }
+  if (resourceKey === "departements") {
+    return [upperCode(item.code_departement), item.nom_departement].filter(Boolean).join(" - ");
+  }
+  if (resourceKey === "directions") {
+    return [upperCode(item.code_direction), item.nom_direction, item.departement_nom].filter(Boolean).join(" - ");
+  }
+  if (resourceKey === "magasins") {
+    return [upperCode(item.code_magasin), item.nom_magasin, item.direction_nom].filter(Boolean).join(" - ");
+  }
+  if (resourceKey === "consommables") {
+    return [upperCode(item.code_consommable), item.nom_consommable, item.categorie_nom].filter(Boolean).join(" - ");
+  }
   const preferred = config.columns.find((column) => column.key.includes("nom_")) || config.columns[0];
   const secondary = config.columns.find((column) => column.key.includes("code_"));
   const label = item[preferred?.key] || item[secondary?.key] || item[config.idField];
+  if (!item[preferred?.key] && item[secondary?.key]) return String(label).toUpperCase();
   return String(label);
 }
 
@@ -138,7 +226,66 @@ function sortRows(rows, columns, sortKey, sortDirection) {
 
 function filterRows(rows, quickFilterConfig, quickFilter) {
   if (!quickFilterConfig || quickFilter === "all") return rows;
-  return rows.filter((row) => String(row[quickFilterConfig.field]) === quickFilter);
+  return rows.filter((row) => String(row[quickFilterConfig.field]) === String(quickFilter));
+}
+
+function getQuickFilterOptions(quickFilterConfig, options) {
+  if (!quickFilterConfig) return [];
+  if (quickFilterConfig.resource) return options[quickFilterConfig.resource] || [];
+  return quickFilterConfig.options || [];
+}
+
+function getServerFilterParams(resourceKey, quickFilterConfig, quickFilter) {
+  const serverFilteredResources = new Set([
+    "affectations",
+    "categories",
+    "consommables",
+    "demandes",
+    "departements",
+    "directions",
+    "documents",
+    "entretiens",
+    "familles",
+    "fournisseurs",
+    "inventaires",
+    "magasins",
+    "materiels",
+    "mouvements",
+    "reparations",
+    "roles",
+    "users",
+  ]);
+  if (!serverFilteredResources.has(resourceKey) || !quickFilterConfig || quickFilter === "all") return {};
+  return { [quickFilterConfig.field]: quickFilter };
+}
+
+function getSortableColumns(config) {
+  if (config.sortColumns) return config.sortColumns;
+
+  const seen = new Set();
+  return [...config.fields, ...config.columns]
+    .filter((field) => field.type === "date" || field.name?.startsWith("date_") || field.key?.startsWith("date_"))
+    .map((field) => ({
+      key: field.name || field.key,
+      label: field.label,
+      type: "date",
+    }))
+    .filter((field) => {
+      if (!field.key || seen.has(field.key)) return false;
+      seen.add(field.key);
+      return true;
+    });
+}
+
+function getOptionResourceKeys(config) {
+  return [
+    ...new Set(
+      config.fields.flatMap((field) => [
+        ...(field.optionResources || []),
+        typeof field.resource === "string" ? field.resource : null,
+      ]).filter(Boolean),
+    ),
+  ];
 }
 
 async function loadResourceOptions(optionConfig) {
@@ -158,13 +305,50 @@ async function loadResourceOptions(optionConfig) {
   return results;
 }
 
-function formatDetailValue(value, field, options) {
+async function loadOptionsForConfig(config, user) {
+  const resources = getOptionResourceKeys(config);
+  if (!resources.length) return {};
+
+  const entries = await Promise.all(
+    resources.map(async (key) => {
+      const optionConfig = resourceConfigs[key];
+      try {
+        return [
+          key,
+          (await loadResourceOptions(optionConfig)).map((item) => ({ value: getRowKey(optionConfig, item), label: getOptionLabel(key, item), item })),
+        ];
+      } catch {
+        if (key === "users" && user?.id_users) {
+          return [key, [{ value: user.id_users, label: user.nom_users || user.matricule }]];
+        }
+        return [key, []];
+      }
+    }),
+  );
+
+  return Object.fromEntries(entries);
+}
+
+function resolveFieldResource(field, item, options) {
+  if (typeof field?.resource === "function") {
+    return field.resource({ values: item, options, item, mode: "detail", user: null });
+  }
+  return field?.resource;
+}
+
+function isCodeField(field) {
+  return /^code_/.test(field?.name || field?.key || "");
+}
+
+function formatDetailValue(value, field, options, item = {}) {
+  if (isCodeField(field) && value !== null && value !== undefined && value !== "") return String(value).toUpperCase();
   if (field?.type === "checkbox") return value ? "Oui" : "Non";
   if ((field?.type === "date" || field?.name?.startsWith("date_")) && value) {
     return new Intl.DateTimeFormat("fr-CD").format(new Date(value));
   }
   if (field?.type === "select") {
-    const match = (field.options || options[field.resource] || []).find((option) => {
+    const resource = resolveFieldResource(field, item, options);
+    const match = (field.options || options[resource] || []).find((option) => {
       const optionValue = typeof option === "string" ? option : option.value;
       return String(optionValue) === String(value);
     });
@@ -174,8 +358,76 @@ function formatDetailValue(value, field, options) {
   return String(value);
 }
 
-function DetailModal({ config, item, options, onClose }) {
-  const fields = config.fields.length ? config.fields : config.columns.map((column) => ({ name: column.key, label: column.label, type: column.type }));
+function humanizeFieldName(name) {
+  return String(name || "")
+    .replace(/^id_/, "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getDetailFields(config) {
+  const groupFieldNames = (config.detailGroups || []).flatMap((group) => group.fields);
+  const baseFields = config.detailFields || [
+    ...config.fields,
+    ...config.columns.map((column) => ({ name: column.key, label: column.label, type: column.type })),
+    ...groupFieldNames.map((name) => ({ name, label: humanizeFieldName(name) })),
+  ];
+
+  const fieldsByName = new Map();
+  baseFields.forEach((field) => {
+    const name = field.name || field.key;
+    if (!name) return;
+    fieldsByName.set(name, { ...fieldsByName.get(name), ...field, name });
+  });
+  return [...fieldsByName.values()];
+}
+
+function getDetailTitle(config, item) {
+  const titleField = config.detailTitleField || config.columns[0]?.key || config.idField;
+  return item[titleField] || item[config.idField] || item.__rowKey || config.title;
+}
+
+function renderArrayValue(value) {
+  if (!value.length) return <span className={styles.emptyDetail}>Aucune donnee</span>;
+  const objectRows = value.filter((entry) => entry && typeof entry === "object" && !Array.isArray(entry));
+  if (objectRows.length === value.length) {
+    const keys = [...new Set(objectRows.flatMap((entry) => Object.keys(entry)))];
+    return (
+      <div className={styles.detailMiniTable}>
+        <div className={styles.detailMiniHead}>
+          {keys.map((key) => <span key={key}>{humanizeFieldName(key)}</span>)}
+        </div>
+        {objectRows.map((entry, index) => (
+          <div className={styles.detailMiniRow} key={`${index}-${Object.values(entry).join("-")}`}>
+            {keys.map((key) => <span key={key}>{formatDetailValue(entry[key], {}, {})}</span>)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className={styles.detailList}>
+      {value.map((entry, index) => <span key={`${index}-${entry}`}>{String(entry)}</span>)}
+    </div>
+  );
+}
+
+function DetailValue({ value, field, options, item }) {
+  if (Array.isArray(value)) return renderArrayValue(value);
+  if (field?.name === "code_barre") return <BarcodeValue value={value} />;
+  if (field?.name === "qr_code") return <QrValue value={value} />;
+  return <span>{formatDetailValue(value, field, options, item)}</span>;
+}
+
+function DetailModal({ config, item, options, customActions, onCustomAction, onClose }) {
+  const fields = getDetailFields(config);
+  const groups = config.detailGroups || [{ title: "Informations", fields: fields.map((field) => field.name), tone: "blue" }];
+  const visibleActions = customActions.filter((action) => !action.visibleWhen || action.visibleWhen(item));
+  const detailActionClassName = (action) => [
+    styles.detailActionButton,
+    action.variant ? styles[`action${action.variant}`] : "",
+  ].filter(Boolean).join(" ");
+
   return (
     <div className={styles.modalBackdrop} role="presentation">
       <section className={`${styles.modal} ${styles.detailModal}`} role="dialog" aria-modal="true" aria-label="Detail">
@@ -184,20 +436,108 @@ function DetailModal({ config, item, options, onClose }) {
             <h2>Detail</h2>
             <p>{config.title}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Fermer">x</button>
+          <button type="button" onClick={onClose} aria-label="Fermer"><X size={16} /></button>
         </header>
-        <div className={styles.detailGrid}>
-          <div className={styles.detailHero}>
-            <span>{config.idField}</span>
-            <strong>{item[config.idField] ?? item.__rowKey}</strong>
-          </div>
-          {fields.map((field) => (
-            <div className={styles.detailItem} key={field.name}>
-              <span>{field.label}</span>
-              <strong>{formatDetailValue(item[field.name], field, options)}</strong>
-            </div>
-          ))}
+        <div className={styles.detailSummary}>
+          <span>{config.title}</span>
+          <strong>{getDetailTitle(config, item)}</strong>
+          <small>{config.idField}: {item[config.idField] ?? item.__rowKey}</small>
         </div>
+        <div className={styles.detailSections}>
+          {groups.map((group) => {
+            const groupFields = group.fields
+              .map((fieldName) => fields.find((field) => field.name === fieldName || field.key === fieldName))
+              .filter(Boolean);
+            if (!groupFields.length) return null;
+            return (
+              <section className={`${styles.detailGroup} ${styles[group.tone || "blue"]}`} key={group.title}>
+                <h3>{group.title}</h3>
+                <div className={styles.detailGrid}>
+                  {groupFields.map((field) => (
+                    <div className={`${styles.detailItem} ${Array.isArray(item[field.name]) ? styles.detailItemWide : ""}`} key={field.name}>
+                      <span>{field.label}</span>
+                      <div className={styles.detailValue}>
+                        <DetailValue value={item[field.name]} field={field} options={options} item={item} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+        {config.traceabilityLabel && (
+          <TraceabilityLabelPrinter item={item} config={config} />
+        )}
+        {visibleActions.length > 0 && (
+          <div className={styles.detailActions}>
+            {visibleActions.map((action) => (
+              <button type="button" className={detailActionClassName(action)} onClick={() => onCustomAction(action, item)} key={action.label}>
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ConfirmDialog({ title, message, confirmLabel = "Confirmer", variant = "danger", onConfirm, onCancel }) {
+  return (
+    <div className={styles.modalBackdrop} role="presentation">
+      <section className={`${styles.modal} ${styles.dialogModal}`} role="dialog" aria-modal="true" aria-label={title}>
+        <header>
+          <div>
+            <h2>{title}</h2>
+            <p>{message}</p>
+          </div>
+          <button type="button" onClick={onCancel} aria-label="Fermer"><X size={16} /></button>
+        </header>
+        <div className={styles.dialogActions}>
+          <button type="button" className={styles.dialogSecondary} onClick={onCancel}>Annuler</button>
+          <button type="button" className={`${styles.dialogPrimary} ${styles[variant]}`} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PromptDialog({ title, label, required = false, confirmLabel = "Valider", onConfirm, onCancel }) {
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
+
+  const submit = (event) => {
+    event.preventDefault();
+    const nextValue = value.trim();
+    if (required && !nextValue) {
+      setError("Ce champ est obligatoire.");
+      return;
+    }
+    onConfirm(nextValue);
+  };
+
+  return (
+    <div className={styles.modalBackdrop} role="presentation">
+      <section className={`${styles.modal} ${styles.dialogModal}`} role="dialog" aria-modal="true" aria-label={title}>
+        <header>
+          <div>
+            <h2>{title}</h2>
+            <p>{label}</p>
+          </div>
+          <button type="button" onClick={onCancel} aria-label="Fermer"><X size={16} /></button>
+        </header>
+        <form className={styles.promptForm} onSubmit={submit}>
+          <label>
+            <span>{label}{required ? " *" : ""}</span>
+            <textarea value={value} onChange={(event) => setValue(event.target.value)} rows={4} autoFocus />
+          </label>
+          {error && <small>{error}</small>}
+          <div className={styles.dialogActions}>
+            <button type="button" className={styles.dialogSecondary} onClick={onCancel}>Annuler</button>
+            <button type="submit" className={styles.dialogPrimary}>{confirmLabel}</button>
+          </div>
+        </form>
       </section>
     </div>
   );
@@ -206,6 +546,7 @@ function DetailModal({ config, item, options, onClose }) {
 export default function ResourcePage({ resourceKey }) {
   const config = getResourceConfig(resourceKey);
   const api = useMemo(() => createResourceApi(config.endpoint), [config.endpoint]);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -214,11 +555,15 @@ export default function ResourcePage({ resourceKey }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [feedback, setFeedback] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [editingItem, setEditingItem] = useState(null);
   const [viewingItem, setViewingItem] = useState(null);
-  const [viewMode, setViewMode] = useState(CARD_FIRST_RESOURCES.has(resourceKey) ? "cards" : "table");
-  const [sortKey, setSortKey] = useState(config.columns[0]?.key || "");
+  const [actionForm, setActionForm] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [promptDialog, setPromptDialog] = useState(null);
+  const [viewMode, setViewMode] = useState("table");
+  const [sortKey, setSortKey] = useState("");
   const [sortDirection, setSortDirection] = useState("asc");
   const [quickFilter, setQuickFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -226,60 +571,92 @@ export default function ResourcePage({ resourceKey }) {
   const updateRoles = config.updateRoles ?? config.writeRoles;
   const deleteRoles = config.deleteRoles ?? config.writeRoles;
   const userCanCreate = canWrite(user, createRoles) && (!config.createWhen || config.createWhen(user));
-  const userCanUpdate = canWrite(user, updateRoles);
-  const userCanDelete = canWrite(user, deleteRoles);
+  const userCanUpdate = canWrite(user, updateRoles) && (!config.updateWhen || config.updateWhen(user));
+  const userCanDelete = canWrite(user, deleteRoles) && (!config.deleteWhen || config.deleteWhen(user));
   const customActions = (config.actions || []).filter(
     (action) => canWrite(user, action.roles) && (!action.canUse || action.canUse(user)),
   );
   const quickFilterConfig = QUICK_FILTERS[resourceKey] || null;
+  const quickFilterOptions = getQuickFilterOptions(quickFilterConfig, options);
+  const sortableColumns = useMemo(() => getSortableColumns(config), [config]);
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    setError("");
+  const loadData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setIsLoading(true);
+      setError("");
+    }
     try {
-      const response = await api.list({ page, perpage, search: search || undefined });
+      const filterParams = getServerFilterParams(resourceKey, quickFilterConfig, quickFilter);
+      const response = await api.list({ page, perpage, search: search || undefined, ...filterParams });
       setData(normalizePage(response));
     } catch (loadError) {
-      setError(getApiErrorMessage(loadError));
+      if (!silent) setError(getApiErrorMessage(loadError));
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
-  }, [api, page, search]);
+  }, [api, page, quickFilter, quickFilterConfig, resourceKey, search]);
+
+  const refreshOptions = useCallback(async () => {
+    setOptions(await loadOptionsForConfig(config, user));
+  }, [config, user]);
+
+  const ensureOptionsForConfig = useCallback(async (targetConfig) => {
+    const resources = getOptionResourceKeys(targetConfig);
+    if (!resources.length) return;
+
+    const missingResources = resources.filter((key) => !options[key]);
+    if (!missingResources.length) return;
+
+    const entries = await Promise.all(
+      missingResources.map(async (key) => {
+        const optionConfig = resourceConfigs[key];
+        try {
+          return [
+            key,
+            (await loadResourceOptions(optionConfig)).map((item) => ({ value: getRowKey(optionConfig, item), label: getOptionLabel(key, item), item })),
+          ];
+        } catch {
+          return [key, []];
+        }
+      }),
+    );
+    setOptions((current) => ({ ...current, ...Object.fromEntries(entries) }));
+  }, [options]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   useEffect(() => {
-    setViewMode(CARD_FIRST_RESOURCES.has(resourceKey) ? "cards" : "table");
-    setSortKey(config.columns[0]?.key || "");
-    setSortDirection("asc");
-    setQuickFilter("all");
-  }, [config.columns, resourceKey]);
+    const refresh = () => {
+      if (document.visibilityState !== "visible" || isFormOpen || actionForm) return;
+      loadData({ silent: true });
+      refreshOptions();
+    };
+
+    const intervalId = window.setInterval(refresh, AUTO_REFRESH_MS);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [actionForm, isFormOpen, loadData, refreshOptions]);
 
   useEffect(() => {
-    const resources = [...new Set(config.fields.map((field) => field.resource).filter(Boolean))];
-    if (!resources.length) return;
+    setViewMode("table");
+    setSortKey(sortableColumns[0]?.key || "");
+    setSortDirection("asc");
+    setQuickFilter("all");
+  }, [resourceKey, sortableColumns]);
 
+  useEffect(() => {
     let isMounted = true;
-    Promise.all(
-      resources.map(async (key) => {
-        const optionConfig = resourceConfigs[key];
-        try {
-          return [
-            key,
-            (await loadResourceOptions(optionConfig)).map((item) => ({ value: getRowKey(optionConfig, item), label: getOptionLabel(key, item) })),
-          ];
-        } catch {
-          if (key === "users" && user?.id_users) {
-            return [key, [{ value: user.id_users, label: user.nom_users || user.matricule }]];
-          }
-          return [key, []];
-        }
-      }),
-    )
-      .then((entries) => {
-        if (isMounted) setOptions(Object.fromEntries(entries));
+    loadOptionsForConfig(config, user)
+      .then((nextOptions) => {
+        if (isMounted) setOptions(nextOptions);
       })
       .catch(() => {
         if (isMounted) setOptions({});
@@ -288,7 +665,7 @@ export default function ResourcePage({ resourceKey }) {
     return () => {
       isMounted = false;
     };
-  }, [config.fields, user]);
+  }, [config, user]);
 
   const rows = useMemo(
     () => data.results.map((item) => ({ ...item, __rowKey: getRowKey(config, item) })),
@@ -299,10 +676,10 @@ export default function ResourcePage({ resourceKey }) {
     [quickFilter, quickFilterConfig, rows],
   );
   const sortedRows = useMemo(
-    () => sortRows(filteredRows, config.columns, sortKey, sortDirection),
-    [config.columns, filteredRows, sortDirection, sortKey],
+    () => sortRows(filteredRows, sortableColumns, sortKey, sortDirection),
+    [filteredRows, sortDirection, sortKey, sortableColumns],
   );
-  const activeSortColumn = config.columns.find((column) => column.key === sortKey);
+  const activeSortColumn = sortableColumns.find((column) => column.key === sortKey);
 
   const changeSort = (key) => {
     setSortKey((currentKey) => {
@@ -315,15 +692,23 @@ export default function ResourcePage({ resourceKey }) {
     });
   };
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditingItem(null);
     setFieldErrors({});
+    setError("");
     setIsFormOpen(true);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "1" || !userCanCreate) return;
+    openCreate();
+    setSearchParams({}, { replace: true });
+  }, [openCreate, searchParams, setSearchParams, userCanCreate]);
 
   const openEdit = (item) => {
     setEditingItem(item);
     setFieldErrors({});
+    setError("");
     setIsFormOpen(true);
   };
 
@@ -337,18 +722,32 @@ export default function ResourcePage({ resourceKey }) {
     setFieldErrors({});
   };
 
+  const closeActionForm = () => {
+    setActionForm(null);
+    setFieldErrors({});
+  };
+
   const submitForm = async (payload) => {
     setIsSubmitting(true);
     setFieldErrors({});
     setError("");
+    setFeedback("");
     try {
       if (editingItem) {
         await api.update(getRowKey(config, editingItem), payload);
+        setFeedback(`${config.title} modifie avec succes.`);
       } else {
         await api.create(payload);
+        const createdQuantity = resourceKey === "materiels" ? Number(payload.quantite_creation || 1) : 1;
+        setFeedback(
+          createdQuantity > 1
+            ? `${createdQuantity} materiels crees avec succes.`
+            : `${config.title} cree avec succes.`,
+        );
       }
       closeForm();
       loadData();
+      refreshOptions();
     } catch (submitError) {
       setFieldErrors(normalizeFieldErrors(submitError));
       setError(getApiErrorMessage(submitError));
@@ -357,36 +756,108 @@ export default function ResourcePage({ resourceKey }) {
     }
   };
 
-  const deleteItem = async (item) => {
-    const confirmed = window.confirm("Confirmer la suppression de cet enregistrement ?");
-    if (!confirmed) return;
-
+  const performDelete = async (item) => {
     try {
-      await api.remove(getRowKey(config, item));
+      setError("");
+      setFeedback("");
+      await api.remove(getRowKey(config, item), { cascade: true });
+      setFeedback(`${config.title} et elements lies supprimes avec succes.`);
       loadData();
+      refreshOptions();
     } catch (deleteError) {
       setError(getApiErrorMessage(deleteError));
     }
   };
 
-  const runCustomAction = async (action, item) => {
-    const payload = action.getPayload ? action.getPayload(item) : {};
-    if (payload === null) return;
+  const deleteItem = (item) => {
+    setConfirmDialog({
+      title: "Confirmer la suppression",
+      message: "Cette suppression est irreversible et les elements lies seront aussi supprimes.",
+      confirmLabel: "Supprimer",
+      onConfirm: () => {
+        setConfirmDialog(null);
+        performDelete(item);
+      },
+    });
+  };
 
+  const executeCustomAction = async (action, item, payload = {}) => {
     try {
       setError("");
+      setFeedback("");
       await api.action(getRowKey(config, item), action.endpoint, payload);
+      setFeedback("Action effectuee avec succes.");
+      setViewingItem(null);
       loadData();
+      refreshOptions();
     } catch (actionError) {
       setError(getApiErrorMessage(actionError));
     }
+  };
+
+  const runCustomAction = async (action, item) => {
+    if (action.formResource) {
+      const targetConfig = resourceConfigs[action.formResource];
+      const initialValues = action.getInitialValues ? action.getInitialValues(item) : {};
+      setFieldErrors({});
+      setError("");
+      await ensureOptionsForConfig(targetConfig);
+      setActionForm({ action, config: targetConfig, initialValues });
+      return;
+    }
+
+    if (action.prompt) {
+      setPromptDialog({
+        ...action.prompt,
+        confirmLabel: action.label,
+        onConfirm: (value) => {
+          setPromptDialog(null);
+          executeCustomAction(action, item, { [action.prompt.field]: value });
+        },
+      });
+      return;
+    }
+
+    const payload = action.getPayload ? action.getPayload(item) : {};
+    if (payload === null) return;
+
+    executeCustomAction(action, item, payload);
+  };
+
+  const submitActionForm = async (payload) => {
+    const actionConfig = actionForm.config;
+    const actionApi = createResourceApi(actionConfig.endpoint);
+    setIsSubmitting(true);
+    setFieldErrors({});
+    setError("");
+    setFeedback("");
+    try {
+      await actionApi.create({ ...actionForm.initialValues, ...payload });
+      setFeedback(`${actionConfig.title} cree avec succes.`);
+      closeActionForm();
+      setViewingItem(null);
+      loadData();
+      refreshOptions();
+    } catch (submitError) {
+      setFieldErrors(normalizeFieldErrors(submitError));
+      setError(getApiErrorMessage(submitError));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const addOption = (resource, option) => {
+    setOptions((current) => ({
+      ...current,
+      [resource]: [...(current[resource] || []), option],
+    }));
   };
 
   return (
     <div className={styles.page}>
       <section className={styles.heading}>
         <div>
-          <p className={styles.eyebrow}>Donnees backend</p>
+          <p className={styles.eyebrow}>Registre</p>
           <h1>{config.title}</h1>
           <p>{config.description}</p>
         </div>
@@ -420,30 +891,26 @@ export default function ResourcePage({ resourceKey }) {
         </div>
       </section>
 
-      <section className={styles.sortPanel} aria-label="Tri des donnees">
-        <div className={styles.sortSummary}>
-          <span>Trier par</span>
-          <small>{activeSortColumn?.label || "Aucun"} - {sortDirection === "asc" ? "Ascendant" : "Descendant"}</small>
-        </div>
-        <div className={styles.sortChips}>
-          {config.columns.map((column) => (
-            <button
-              type="button"
-              className={sortKey === column.key ? styles.activeSort : ""}
-              onClick={() => changeSort(column.key)}
-              key={column.key}
-            >
-              {column.label}
-              {sortKey === column.key && (
-                <span className={styles.sortDirectionIcon}>
-                  {sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-                  {sortDirection === "asc" ? "Asc" : "Desc"}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </section>
+      {sortableColumns.length > 0 && (
+        <section className={styles.sortPanel} aria-label="Tri des donnees">
+          <div className={styles.sortSummary}>
+            <span>Trier par</span>
+            <small>{activeSortColumn?.label || "Aucune"}</small>
+          </div>
+          <div className={styles.sortChips}>
+            {sortableColumns.map((column) => (
+              <button
+                type="button"
+                className={sortKey === column.key ? styles.activeSort : ""}
+                onClick={() => changeSort(column.key)}
+                key={column.key}
+              >
+                {column.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {quickFilterConfig && (
         <section className={styles.quickFilters} aria-label={`Filtrer par ${quickFilterConfig.label}`}>
@@ -455,15 +922,21 @@ export default function ResourcePage({ resourceKey }) {
             <button
               type="button"
               className={quickFilter === "all" ? styles.activeFilter : ""}
-              onClick={() => setQuickFilter("all")}
+              onClick={() => {
+                setPage(1);
+                setQuickFilter("all");
+              }}
             >
               Tous
             </button>
-            {quickFilterConfig.options.map((option) => (
+            {quickFilterOptions.map((option) => (
               <button
                 type="button"
                 className={quickFilter === option.value ? styles.activeFilter : ""}
-                onClick={() => setQuickFilter(option.value)}
+                onClick={() => {
+                  setPage(1);
+                  setQuickFilter(option.value);
+                }}
                 key={option.value}
               >
                 {option.label}
@@ -473,13 +946,16 @@ export default function ResourcePage({ resourceKey }) {
         </section>
       )}
 
-      <ErrorAlert message={error} onRetry={loadData} />
+      {feedback && <div className={styles.feedback} role="status">{feedback}</div>}
+      {!isFormOpen && !actionForm && <ErrorAlert message={error} onRetry={loadData} />}
 
       {isLoading ? (
         <LoadingState />
       ) : (
         <DataTable
           columns={config.columns}
+          fields={config.fields}
+          options={options}
           rows={sortedRows}
           page={data.page}
           totalPages={data.totalPages}
@@ -487,6 +963,7 @@ export default function ResourcePage({ resourceKey }) {
           viewMode={viewMode}
           sortKey={sortKey}
           sortDirection={sortDirection}
+          canView
           canEdit={userCanUpdate}
           canDelete={userCanDelete}
           customActions={customActions}
@@ -496,28 +973,32 @@ export default function ResourcePage({ resourceKey }) {
           onCustomAction={runCustomAction}
           onPageChange={setPage}
           onSort={changeSort}
+          sortableColumns={sortableColumns}
         />
       )}
 
       {isFormOpen && (
         <div className={styles.modalBackdrop} role="presentation">
-          <section className={styles.modal} role="dialog" aria-modal="true" aria-label={editingItem ? "Modifier" : "Creer"}>
+          <section className={`${styles.modal} ${config.formSteps ? styles.wizardModal : ""}`} role="dialog" aria-modal="true" aria-label={editingItem ? "Modifier" : "Creer"}>
             <header>
               <div>
                 <h2>{editingItem ? "Modifier" : "Nouvel enregistrement"}</h2>
                 <p>{config.title}</p>
               </div>
-              <button type="button" onClick={closeForm} aria-label="Fermer">x</button>
+              <button type="button" onClick={closeForm} aria-label="Fermer"><X size={16} /></button>
             </header>
+            <ErrorAlert message={error} />
             <ResourceForm
               config={config}
               item={editingItem}
+              mode={editingItem ? "edit" : "create"}
               options={options}
               user={user}
               errors={fieldErrors}
               isSubmitting={isSubmitting}
               onSubmit={submitForm}
               onCancel={closeForm}
+              onOptionCreated={addOption}
             />
           </section>
         </div>
@@ -528,7 +1009,57 @@ export default function ResourcePage({ resourceKey }) {
           config={config}
           item={viewingItem}
           options={options}
+          customActions={customActions}
+          onCustomAction={runCustomAction}
           onClose={() => setViewingItem(null)}
+        />
+      )}
+
+      {actionForm && (
+        <div className={styles.modalBackdrop} role="presentation">
+          <section className={styles.modal} role="dialog" aria-modal="true" aria-label={actionForm.action.label}>
+            <header>
+              <div>
+                <h2>{actionForm.action.label}</h2>
+                <p>{actionForm.config.title}</p>
+              </div>
+              <button type="button" onClick={closeActionForm} aria-label="Fermer"><X size={16} /></button>
+            </header>
+            <ErrorAlert message={error} />
+            <ResourceForm
+              config={actionForm.config}
+              item={actionForm.initialValues}
+              mode="create"
+              options={options}
+              user={user}
+              errors={fieldErrors}
+              isSubmitting={isSubmitting}
+              onSubmit={submitActionForm}
+              onCancel={closeActionForm}
+              onOptionCreated={addOption}
+            />
+          </section>
+        </div>
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
+
+      {promptDialog && (
+        <PromptDialog
+          title={promptDialog.title}
+          label={promptDialog.label}
+          required={promptDialog.required}
+          confirmLabel={promptDialog.confirmLabel}
+          onConfirm={promptDialog.onConfirm}
+          onCancel={() => setPromptDialog(null)}
         />
       )}
     </div>

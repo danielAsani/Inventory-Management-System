@@ -16,7 +16,6 @@ class Entretien(models.Model):
         CONSTRUCTEUR = "CONSTRUCTEUR", "Constructeur"
 
     class StatutEntretien(models.TextChoices):
-        PLANIFIE = "PLANIFIE", "Planifié"
         EN_COURS = "EN_COURS", "En cours"
         TERMINE = "TERMINE", "Terminé"
         ANNULE = "ANNULE", "Annulé"
@@ -70,7 +69,7 @@ class Entretien(models.Model):
     statut = models.CharField(
         max_length=20,
         choices=StatutEntretien.choices,
-        default=StatutEntretien.PLANIFIE
+        default=StatutEntretien.EN_COURS
     )
 
     observation = models.CharField(max_length=500, blank=True, null=True)

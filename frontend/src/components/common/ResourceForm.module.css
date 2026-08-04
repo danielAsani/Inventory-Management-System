@@ -3,11 +3,190 @@
   gap: var(--space-5);
 }
 
+.formError {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgb(180 35 24 / 24%);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+.stepper button {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+}
+
+.stepper button span {
+  display: inline-grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  color: inherit;
+  font-size: var(--font-size-xs);
+}
+
+.stepper .activeStep {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-xs);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
 }
+
+.recordPicker {
+  grid-column: 1 / -1;
+}
+
+.recordGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--space-2);
+  max-height: 22rem;
+  overflow-y: auto;
+  padding: var(--space-1);
+}
+
+.recordCard {
+  display: grid;
+  min-height: 8rem;
+  gap: var(--space-2);
+  align-content: start;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.recordCard:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-subtle);
+}
+
+.selectedRecord {
+  border-color: var(--color-primary);
+  background: var(--color-info-soft);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.recordHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.recordHeader strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 750;
+}
+
+.recordIcon {
+  display: inline-grid;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.recordCard span,
+.recordCard small,
+.recordCard em {
+  overflow-wrap: anywhere;
+}
+
+.recordCard span {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.recordCard small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.recordCard em {
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.emptyPicker {
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.group {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.group h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 750;
+}
+
+.blue,
+.green,
+.orange,
+.slate {
+  border-left: 3px solid var(--color-border-strong);
+}
+
+.blue { border-left-color: var(--color-info); }
+.green { border-left-color: var(--color-success); }
+.orange { border-left-color: var(--color-warning); }
+.slate { border-left-color: var(--color-border-strong); }
 
 .field {
   display: grid;
@@ -17,11 +196,48 @@
   font-weight: 650;
 }
 
+.field > span,
+.checkbox span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .field input,
 .field select,
 .field textarea {
-  padding: 0.7rem 0.8rem;
+  min-height: 2.5rem;
+  padding: 0.65rem 0.75rem;
   font-weight: 400;
+}
+
+.field textarea {
+  min-height: 6rem;
+}
+
+.inlineButton {
+  width: fit-content;
+  min-height: 2.15rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.inlineButton:hover {
+  border-color: var(--color-primary);
+  background: var(--color-info-soft);
+}
+
+.fileName {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  font-weight: 650;
 }
 
 .field input:disabled,
@@ -40,7 +256,8 @@
 
 .field small {
   color: var(--color-danger);
-  font-weight: 500;
+  font-size: var(--font-size-xs);
+  font-weight: 650;
 }
 
 .checkbox {
@@ -48,39 +265,41 @@
   align-items: center;
   gap: var(--space-3);
   align-self: end;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   font-weight: 650;
 }
 
 .checkbox input {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.checkbox input:disabled {
-  cursor: not-allowed;
+  width: 1rem;
+  height: 1rem;
 }
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .primary,
 .secondary {
-  height: 2.5rem;
+  min-height: 2.4rem;
   padding: 0 var(--space-4);
   border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
   font-weight: 700;
 }
 
 .primary {
-  border: 0;
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
+  border: 1px solid var(--color-text);
+  background: var(--color-text);
+  color: #ffffff;
+}
+
+.primary:hover:not(:disabled) {
+  background: #000000;
 }
 
 .secondary {
@@ -89,8 +308,22 @@
   color: var(--color-text-muted);
 }
 
+.secondary:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
 @media (max-width: 760px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .primary,
+  .secondary {
+    flex: 1;
   }
 }

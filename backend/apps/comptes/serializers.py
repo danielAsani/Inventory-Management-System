@@ -1,8 +1,13 @@
-from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from apps.core.serializer_validators import SanitizedModelSerializer, clean_text, validate_not_blank
+from apps.core.serializer_validators import (
+    SanitizedModelSerializer,
+    clean_text,
+    validate_not_blank,
+    validate_unique_optional_text,
+    validate_unique_text,
+)
 from .models import Role, Users
 
 
@@ -25,18 +30,52 @@ class RoleSerializer(SanitizedModelSerializer):
         return validate_not_blank(value, "Le code du role ne peut pas etre vide.")
 
     def validate_nom_role(self, value):
-        return validate_not_blank(value, "Le nom du role ne peut pas etre vide.")
+        value = validate_not_blank(value, "Le nom du role ne peut pas etre vide.")
+        return validate_unique_text(
+            Role,
+            "nom_role",
+            value,
+            "Un role avec ce nom existe deja.",
+            self.instance,
+        )
 
 
 class UsersSerializer(SanitizedModelSerializer):
     password = serializers.CharField(write_only=True, required=False, trim_whitespace=False)
+    role = serializers.SerializerMethodField()
+    role_libelle = serializers.SerializerMethodField()
+    perimetre = serializers.SerializerMethodField()
 
     class Meta:
         model = Users
-        exclude = ["password_hash"]
+        exclude = ["groups", "user_permissions"]
         extra_kwargs = {
             "email": {"required": False, "allow_blank": True},
+            "matricule": {"required": False, "allow_blank": True},
+            "last_login": {"read_only": True},
+            "is_superuser": {"read_only": True},
+            "is_staff": {"read_only": True},
+            "date_joined": {"read_only": True},
         }
+
+    def get_role(self, obj):
+        return obj.role_code
+
+    def get_role_libelle(self, obj):
+        if not obj.id_role:
+            return "-"
+        return f"{obj.id_role.nom_role} ({obj.id_role.code_role})"
+
+    def get_perimetre(self, obj):
+        if obj.scope_type == Users.ScopeType.GENERAL:
+            return "General"
+        if obj.scope_type == Users.ScopeType.DEPARTEMENT and obj.id_departement:
+            return f"Departement: {obj.id_departement.nom_departement}"
+        if obj.scope_type == Users.ScopeType.DIRECTION and obj.id_direction:
+            return f"Direction: {obj.id_direction.nom_direction}"
+        if obj.scope_type == Users.ScopeType.MAGASIN and obj.id_magasin:
+            return f"Magasin: {obj.id_magasin.nom_magasin}"
+        return obj.scope_type or "-"
 
     def validate_email(self, value):
         if value:
@@ -44,11 +83,25 @@ class UsersSerializer(SanitizedModelSerializer):
             validator = serializers.EmailField(
                 error_messages={"invalid": "L'adresse email n'est pas valide."}
             )
-            return validator.run_validation(value)
+            value = validator.run_validation(value)
+            return validate_unique_optional_text(
+                Users,
+                "email",
+                value,
+                "Cette adresse email existe deja.",
+                self.instance,
+            )
         return value
 
     def validate_matricule(self, value):
-        return validate_not_blank(value, "Le matricule ne peut pas etre vide.")
+        value = validate_not_blank(value, "Le matricule ne peut pas etre vide.").upper()
+        return validate_unique_text(
+            Users,
+            "matricule",
+            value,
+            "Ce matricule existe deja.",
+            self.instance,
+        )
 
     def validate_nom_users(self, value):
         return validate_not_blank(value, "Le nom de l'utilisateur ne peut pas etre vide.")
@@ -60,6 +113,8 @@ class UsersSerializer(SanitizedModelSerializer):
 
         role = attrs.get("id_role") or getattr(self.instance, "id_role", None)
         scope_type = attrs.get("scope_type") or getattr(self.instance, "scope_type", None)
+        departement = attrs.get("id_departement") or getattr(self.instance, "id_departement", None)
+        direction = attrs.get("id_direction") or getattr(self.instance, "id_direction", None)
 
         if role and role.code_role not in {"ADMIN", "GESTION", "MAGASIN"}:
             raise serializers.ValidationError(
@@ -77,11 +132,11 @@ class UsersSerializer(SanitizedModelSerializer):
                 queryset = Users.objects.filter(
                     id_role=role,
                     scope_type=Users.ScopeType.GENERAL,
-                    statut=True,
+                    is_active=True,
                 )
                 if self.instance:
                     queryset = queryset.exclude(pk=self.instance.pk)
-                if attrs.get("statut", getattr(self.instance, "statut", True)) and queryset.exists():
+                if attrs.get("is_active", getattr(self.instance, "is_active", True)) and queryset.exists():
                     raise serializers.ValidationError(
                         {"id_role": "Il ne peut y avoir qu'un seul utilisateur MAGASIN actif."}
                     )
@@ -91,7 +146,6 @@ class UsersSerializer(SanitizedModelSerializer):
         scope_fields = {
             Users.ScopeType.DEPARTEMENT: "id_departement",
             Users.ScopeType.DIRECTION: "id_direction",
-            Users.ScopeType.SERVICE: "id_service",
             Users.ScopeType.MAGASIN: "id_magasin",
         }
 
@@ -109,15 +163,36 @@ class UsersSerializer(SanitizedModelSerializer):
                 if field_name != required_field:
                     attrs[field_name] = None
 
+        if scope_type == Users.ScopeType.DEPARTEMENT and departement:
+            attrs["matricule"] = departement.code_departement.upper()
+        elif scope_type == Users.ScopeType.DIRECTION and direction:
+            attrs["matricule"] = direction.code_direction.upper()
+        elif attrs.get("matricule"):
+            attrs["matricule"] = clean_text(attrs["matricule"]).upper()
+        elif self.instance is None:
+            raise serializers.ValidationError({"matricule": "Le matricule est obligatoire."})
+
+        if attrs.get("matricule"):
+            queryset = Users.objects.filter(matricule__iexact=attrs["matricule"])
+            if self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            if queryset.exists():
+                raise serializers.ValidationError({"matricule": "Ce code est deja utilise comme matricule."})
+
         return attrs
 
     def create(self, validated_data):
         password = validated_data.pop("password")
-        validated_data["password_hash"] = make_password(password)
-        return Users.objects.create(**validated_data)
+        user = Users(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
         if password:
-            validated_data["password_hash"] = make_password(password)
-        return super().update(instance, validated_data)
+            instance.set_password(password)
+        instance.save()
+        return instance

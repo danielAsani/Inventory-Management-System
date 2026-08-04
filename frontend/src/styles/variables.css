@@ -1,37 +1,40 @@
-﻿:root {
-  --color-brand-blue: #1300ff;
-  --color-brand-blue-hover: #0d00c7;
-  --color-brand-yellow: #fff500;
-  --color-brand-red: #ff1d16;
+:root {
+  --color-brand-blue: #1f5eff;
+  --color-brand-blue-hover: #1648c7;
+  --color-brand-yellow: #f5c542;
+  --color-brand-red: #d92d20;
 
-  --color-canvas: #f4f6f8;
+  --color-canvas: #f7f7f5;
   --color-surface: #ffffff;
-  --color-surface-subtle: #f8fafc;
-  --color-surface-muted: #eef1f4;
-  --color-text: #171a1f;
-  --color-text-muted: #667085;
-  --color-text-subtle: #98a2b3;
-  --color-border: #dfe3e8;
-  --color-border-strong: #c4cad2;
+  --color-surface-subtle: #fbfbfa;
+  --color-surface-muted: #f1f1ef;
+  --color-surface-raised: #ffffff;
+  --color-text: #232323;
+  --color-text-muted: #6b6f76;
+  --color-text-subtle: #9a9da3;
+  --color-border: #e5e5e2;
+  --color-border-strong: #d2d2cd;
 
-  --color-success: #027a48;
-  --color-success-soft: #ecfdf3;
-  --color-danger: #d92d20;
-  --color-danger-soft: #fef3f2;
-  --color-warning: #b54708;
-  --color-warning-soft: #fffaeb;
+  --color-success: #157f3f;
+  --color-success-soft: #edf7ef;
+  --color-danger: #b42318;
+  --color-danger-soft: #fff1f0;
+  --color-warning: #9a6700;
+  --color-warning-soft: #fff7df;
+  --color-info: #235ea8;
+  --color-info-soft: #eef5ff;
 
   --color-primary: var(--color-brand-blue);
   --color-primary-hover: var(--color-brand-blue-hover);
   --color-primary-foreground: #ffffff;
-  --color-focus-ring: rgb(19 0 255 / 18%);
+  --color-focus-ring: rgb(31 94 255 / 16%);
 
   --font-sans: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1.0625rem;
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.875rem;
@@ -47,18 +50,18 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.5rem;
   --radius-pill: 999px;
 
-  --shadow-xs: 0 1px 2px rgb(16 24 40 / 5%);
-  --shadow-sm: 0 1px 3px rgb(16 24 40 / 10%), 0 1px 2px rgb(16 24 40 / 6%);
-  --shadow-md: 0 8px 16px -4px rgb(16 24 40 / 10%), 0 4px 6px -2px rgb(16 24 40 / 4%);
-  --shadow-lg: 0 20px 32px -12px rgb(16 24 40 / 16%);
+  --shadow-xs: 0 1px 1px rgb(20 20 20 / 4%);
+  --shadow-sm: 0 2px 8px rgb(20 20 20 / 6%);
+  --shadow-md: 0 10px 24px rgb(20 20 20 / 8%);
+  --shadow-lg: 0 24px 60px rgb(20 20 20 / 16%);
 
-  --transition-fast: 150ms ease;
-  --transition-base: 220ms ease;
-  --content-max-width: 76rem;
+  --transition-fast: 140ms ease;
+  --transition-base: 200ms ease;
+  --content-max-width: 88rem;
 }

@@ -1,4 +1,4 @@
-import { Activity, Archive, Boxes, Building2, ClipboardList, FileText, LayoutDashboard, MapPin, PackageSearch, Repeat2, Ruler, Tags, UserCheck, Users, Wrench } from "lucide-react";
+import { Archive, Boxes, Building2, ClipboardList, FileText, LayoutDashboard, MapPin, PackageSearch, Repeat2, Tags, UserCheck, Users, Wrench } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import logo from "../../../public/logo.png";
 import { ROLES } from "../../utils/permissions";
@@ -14,7 +14,7 @@ const mainNavigation = [
   { label: "Materiels", icon: PackageSearch, to: "/stock/materiels", roles: businessRoles },
   { label: "Consommables", icon: Boxes, to: "/stock/consommables", roles: businessRoles },
   { label: "Mouvements", icon: ClipboardList, to: "/operations/mouvements", roles: gestionRoles },
-  { label: "Affectations", icon: UserCheck, to: "/operations/affectations", roles: gestionRoles },
+  { label: "Affectations", icon: UserCheck, to: "/operations/affectations", roles: magasinRoles },
   { label: "Consommations", icon: Repeat2, to: "/operations/consommations", roles: gestionRoles },
 ];
 
@@ -22,24 +22,20 @@ const organizationNavigation = [
   { label: "Magasins", icon: MapPin, to: "/stock/magasins", roles: adminOnly },
   { label: "Departements", icon: Building2, to: "/organisation/departements", roles: adminOnly },
   { label: "Directions", icon: Building2, to: "/organisation/directions", roles: adminOnly },
-  { label: "Services", icon: Building2, to: "/organisation/services", roles: adminOnly },
 ];
 
 const catalogueNavigation = [
-  { label: "Familles", icon: Archive, to: "/catalogue/familles", roles: adminOnly },
-  { label: "Categories", icon: Tags, to: "/catalogue/categories", roles: adminOnly },
-  { label: "Unites", icon: Ruler, to: "/catalogue/unites", roles: adminOnly },
+  { label: "Familles", icon: Archive, to: "/catalogue/familles", roles: businessRoles },
+  { label: "Categories", icon: Tags, to: "/catalogue/categories", roles: businessRoles },
   { label: "Fournisseurs", icon: Users, to: "/catalogue/fournisseurs", roles: adminOnly },
 ];
 
 const processNavigation = [
   { label: "Inventaires", icon: ClipboardList, to: "/inventaires", roles: gestionRoles },
-  { label: "Details inventaire", icon: ClipboardList, to: "/inventaires/details", roles: gestionRoles },
-  { label: "Entretiens", icon: Wrench, to: "/maintenance/entretiens", roles: gestionRoles },
+  { label: "Entretiens", icon: Wrench, to: "/maintenance/entretiens", roles: businessRoles },
   { label: "Reparations", icon: Wrench, to: "/maintenance/reparations", roles: gestionRoles },
   { label: "Demandes", icon: FileText, to: "/demandes", roles: businessRoles },
   { label: "Documents", icon: FileText, to: "/documents", roles: magasinRoles },
-  { label: "Etude donnees", icon: Activity, to: "/etude-donnees", roles: magasinRoles },
 ];
 
 const adminNavigation = [

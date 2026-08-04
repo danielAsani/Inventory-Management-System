@@ -1,58 +1,38 @@
 # Gestion Inventaire
 
-Gestion Inventaire est une application web de suivi du materiel, des consommables, des demandes internes, des mouvements de stock, des affectations, des inventaires physiques et de la maintenance.
+Gestion Inventaire est une application web de suivi du materiel, des consommables, des mouvements de stock, des affectations, des demandes internes, des inventaires et de la maintenance.
 
-Le projet est construit avec un backend Django REST Framework, une base MySQL et un frontend React/Vite. Il couvre un workflow metier complet : une direction cree une demande, le departement concerne la valide, puis le magasinier general finalise le traitement.
+Le projet utilise Django REST Framework, MySQL et React/Vite. Il couvre un circuit simple : gestion du catalogue, entree en stock, affectation du materiel, demandes internes, suivi des reparations et impression des etiquettes.
 
-## Objectif
+## Fonctionnalites
 
-L'application aide une organisation a :
-
-- centraliser son inventaire de materiels et consommables ;
-- connaitre l'emplacement et l'etat des biens ;
-- suivre les demandes d'achat, de reapprovisionnement, de reparation ou les demandes simples ;
-- limiter les acces selon le role et le perimetre de l'utilisateur ;
-- analyser les donnees de stock sur plusieurs mois ;
-- detecter les incoherences, ruptures probables et dossiers a verifier.
-
-## Fonctionnalites principales
-
-- Authentification par tokens JWT.
-- Roles applicatifs : `ADMIN`, `GESTION`, `MAGASIN`.
-- Perimetres utilisateur : general, departement, direction, service, magasin.
-- Gestion de l'organisation : departements, directions, services.
-- Catalogue : familles, categories, unites, fournisseurs.
-- Stock : magasins, materiels, consommables.
-- Operations : mouvements, affectations, consommations.
-- Demandes : creation, validation departement, rejet, finalisation magasin.
-- Inventaires physiques et details d'ecart.
-- Maintenance : entretiens et reparations.
-- Documents rattaches aux materiels ou consommables.
-- Notifications de demandes a traiter.
-- Tableaux, cartes, filtres rapides et tri par boutons.
-- Etude des donnees : risques stock, previsions, verification des incoherences et flux.
+- connexion par matricule ou email ;
+- roles `ADMIN`, `GESTION` et `MAGASIN` ;
+- gestion des departements, directions, services et magasins ;
+- catalogue des familles, categories, unites et fournisseurs ;
+- suivi des materiels et consommables ;
+- mouvements de stock, affectations et consommations ;
+- demandes internes avec validation et finalisation ;
+- inventaires physiques ;
+- entretiens, reparations et documents ;
+- codes-barres, QR codes et impression d'etiquettes.
 
 ## Stack technique
 
 - Backend : Python, Django, Django REST Framework, Simple JWT, PyMySQL.
-- Base de donnees : MySQL.
-- Frontend : React, Vite, Axios, React Router, Lucide React.
-- Tests : Django `TestCase`, DRF `APIClient`, Oxlint, build Vite.
+- Base : MySQL.
+- Frontend : React, Vite, Axios, React Router.
 
 ## Structure du depot
 
 ```text
 .
-|-- backend/       # API Django REST
-|-- frontend/      # Interface React
-|-- README.md            # Presentation generale
-|-- README_TECHNIQUE.md  # Installation, architecture et verification
-`-- README_UTILISATEUR.md # Guide fonctionnel non technique
+|-- backend/   # API Django REST
+|-- frontend/  # Interface React
+`-- README.md  # Notes de presentation
 ```
 
 ## Demarrage rapide
-
-### Backend
 
 ```bash
 cd backend
@@ -66,8 +46,6 @@ python manage.py create_initial_users --password "VotreMotDePasseFort"
 python manage.py runserver
 ```
 
-### Frontend
-
 ```bash
 cd frontend
 npm install
@@ -75,11 +53,15 @@ copy .env.example .env
 npm run dev
 ```
 
-Par defaut, le backend expose l'API sur `/api/`. En local, configurez `VITE_API_BASE_URL=http://localhost:8000/api` dans le `.env` frontend.
+En local, le frontend doit pointer vers :
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000/api
+```
 
 ## Comptes initiaux
 
-La commande `create_initial_users` cree les matricules suivants :
+La commande `create_initial_users` cree quatre comptes de base :
 
 | Matricule | Role | Perimetre |
 |---|---|---|
@@ -88,41 +70,15 @@ La commande `create_initial_users` cree les matricules suivants :
 | `DEP001` | Gestion | Departement |
 | `MAG001` | Magasin | General |
 
-Le mot de passe n'est pas stocke dans le depot. Il doit etre fourni via `--password` ou `INITIAL_USER_PASSWORD`.
+Le mot de passe est choisi au moment de la creation des comptes. Il peut aussi etre place dans `INITIAL_USER_PASSWORD`.
 
-## Verification
+## Presentation
 
-Commandes executees avant publication :
+Pour une demonstration courte, suivre cet ordre :
 
-```bash
-cd backend
-python manage.py check
-python manage.py test apps.core.tests_integration.AuthDashboardIntegrationTests
-```
-
-```bash
-cd frontend
-npm run lint
-npm run build
-```
-
-## Securite de publication
-
-Les fichiers suivants ne doivent pas etre commits :
-
-- `.env`
-- logs (`*.log`)
-- environnements virtuels (`env/`, `.venv/`)
-- `node_modules/`
-- builds frontend (`dist/`, `build/`)
-- caches Python (`__pycache__/`, `*.pyc`)
-- dumps locaux de base de donnees.
-
-Les fichiers `.env.example` restent publics et ne contiennent pas de secret reel.
-
-## Documentation
-
-- [README utilisateur](README_UTILISATEUR.md)
-- [README technique](README_TECHNIQUE.md)
-- [Documentation backend](backend/docs/DOCUMENTATION_BACKEND.md)
-- [Documentation API](backend/docs/API_DOCUMENTATION.md)
+1. connexion avec `ADMIN001` ;
+2. consultation du tableau de bord ;
+3. ajout ou consultation d'un materiel ;
+4. impression d'une etiquette avec code-barres et QR code ;
+5. creation d'une affectation ;
+6. consultation des demandes, inventaires ou reparations.
