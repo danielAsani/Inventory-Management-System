@@ -1,6 +1,6 @@
 .wrap {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .tableScroller {
@@ -8,6 +8,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+  box-shadow: 0 1px 0 rgb(20 20 20 / 3%);
 }
 
 .table {
@@ -19,7 +20,7 @@
 
 .table th,
 .table td {
-  padding: 0.8rem var(--space-4);
+  padding: 0.72rem var(--space-4);
   border-bottom: 1px solid var(--color-border);
   font-size: var(--font-size-sm);
   vertical-align: middle;
@@ -30,15 +31,16 @@
   top: 0;
   z-index: 1;
   background: var(--color-surface-subtle);
-  color: var(--color-text-subtle);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  background: #fbfbfa;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .table tbody tr:hover {
-  background: var(--color-surface-subtle);
+  background: linear-gradient(90deg, #f7faff, #fbfbfa);
 }
 
 .table tr:last-child td {
@@ -59,6 +61,10 @@
   text-transform: inherit;
 }
 
+.sortHeader svg {
+  color: var(--color-text-subtle);
+}
+
 .sortHeader:hover {
   color: var(--color-text);
 }
@@ -66,15 +72,25 @@
 .badge {
   display: inline-flex;
   align-items: center;
+  gap: 0.35rem;
   max-width: 100%;
   min-height: 1.35rem;
   padding: 0.12rem 0.5rem;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   font-size: var(--font-size-xs);
-  font-weight: 700;
+  font-weight: 650;
   line-height: 1.15;
   white-space: nowrap;
+}
+
+.badge::before {
+  width: 0.42rem;
+  height: 0.42rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
 }
 
 .success {
@@ -107,9 +123,8 @@
   color: var(--color-text-muted);
 }
 
-.table th.familyColumn,
 .table td.familyColumn {
-  background: #fffaf0;
+  background: #fffdf7;
 }
 
 .actionsHeader {
@@ -129,6 +144,14 @@
 .table .actions {
   flex-wrap: nowrap;
   align-items: center;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity var(--motion-fast);
+}
+
+.table tr:hover .actions,
+.table tr:focus-within .actions {
+  opacity: 1;
 }
 
 .actions button,
@@ -139,7 +162,7 @@
   gap: var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: #ffffff;
   color: var(--color-text-muted);
 }
 
@@ -150,6 +173,7 @@
   font-size: var(--font-size-xs);
   font-weight: 700;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgb(20 20 20 / 5%);
 }
 
 .actions .iconAction {
@@ -192,6 +216,10 @@
   gap: var(--space-4);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
 
 .pagination > div {

@@ -6,6 +6,7 @@ import ErrorAlert from "../../components/common/ErrorAlert";
 import LoadingState from "../../components/common/LoadingState";
 import { formatDate, formatNumber } from "../../utils/format";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useAuth } from "../../hooks/useAuth";
 import styles from "./Dashboard.module.css";
 
 const AUTO_REFRESH_MS = 10000;
@@ -21,6 +22,7 @@ function buildMetrics(metrics = {}) {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -64,18 +66,51 @@ export default function Dashboard() {
   const metrics = buildMetrics(dashboard?.metrics);
   const movements = dashboard?.recent_movements || [];
   const stockAlerts = dashboard?.stock_alerts || [];
+  const priorityItems = [
+    {
+      label: "Matériels en réparation",
+      value: dashboard?.metrics?.materiels_en_reparation || 0,
+      tone: (dashboard?.metrics?.materiels_en_reparation || 0) > 0 ? "warning" : "success",
+    },
+    {
+      label: "Stock critique",
+      value: dashboard?.metrics?.stock_faible || 0,
+      tone: (dashboard?.metrics?.stock_faible || 0) > 0 ? "danger" : "success",
+    },
+    {
+      label: "Matériels affectés",
+      value: dashboard?.metrics?.materiels_affectes || 0,
+      tone: "info",
+    },
+  ];
+  const attentionCount = priorityItems.slice(0, 2).reduce((sum, item) => sum + Number(item.value || 0), 0);
+  const firstName = (user?.nom_users || "Administrateur").split(" ")[0];
 
   return (
     <div>
-      <section className={styles.pageHeading}>
+      <section className={styles.hero}>
         <div>
-          <h1>Tableau de bord</h1>
-          <p className={styles.description}>Les priorites d'inventaire, les alertes et les derniers mouvements.</p>
+          <h1>Bonjour, {firstName}</h1>
+          <p className={styles.description}>
+            {attentionCount} élément{attentionCount > 1 ? "s" : ""} nécessite{attentionCount > 1 ? "nt" : ""} votre attention.
+          </p>
         </div>
         <div className={styles.dateBadge}>{formatDate(new Date().toISOString())}</div>
       </section>
 
       <ErrorAlert message={error} onRetry={loadDashboard} />
+
+      <section className={styles.priorityPanel}>
+        <h2>Priorités</h2>
+        <div className={styles.priorityList}>
+          {priorityItems.map((item) => (
+            <div className={styles.priorityItem} key={item.label}>
+              <span>{item.label}</span>
+              <strong className={styles[item.tone]}>{item.value || "aucun"}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className={styles.metrics} aria-label="Indicateurs cles">
         {metrics.map(({ label, value, hint, icon: Icon, tone }) => (
