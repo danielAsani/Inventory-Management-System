@@ -1,4 +1,4 @@
-import { LayoutGrid, Maximize2, Minimize2, Plus, Search, Table2, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, Coins, LayoutGrid, Maximize2, Minimize2, Plus, Search, Table2, Wrench, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { createResourceApi } from "../../api/resourceApi";
@@ -456,6 +456,170 @@ function DetailValue({ value, field, options, item }) {
   if (field?.name === "code_barre") return <BarcodeValue value={value} />;
   if (field?.name === "qr_code") return <QrValue value={value} />;
   return <span>{formatDetailValue(value, field, options, item)}</span>;
+}
+
+const STATUS_LABELS = {
+  EN_ATTENTE: "En attente",
+  EN_COURS: "En cours",
+  TERMINE: "Termine",
+  TERMINEE: "Terminee",
+  ANNULE: "Annule",
+  ANNULEE: "Annulee",
+};
+
+const MAINTENANCE_BOARDS = {
+  entretiens: {
+    title: "Pilotage des entretiens",
+    subtitle: "Suivi des controles, couts et echeances d'entretien.",
+    dateField: "date_entretien",
+    plannedField: "date_fin_prevue",
+    doneField: "date_fin_reelle",
+    costField: "cout_entretien",
+    openStatuses: ["EN_COURS"],
+    doneStatuses: ["TERMINE"],
+    lanes: ["EN_COURS", "TERMINE", "ANNULE"],
+  },
+  reparations: {
+    title: "Pilotage des reparations",
+    subtitle: "Vue operationnelle des pannes, reparations et clotures.",
+    dateField: "date_reparation",
+    plannedField: "date_fin_prevue",
+    doneField: "date_fin_reelle",
+    costField: "cout_reparation",
+    openStatuses: ["EN_ATTENTE", "EN_COURS"],
+    doneStatuses: ["TERMINEE"],
+    lanes: ["EN_ATTENTE", "EN_COURS", "TERMINEE", "ANNULEE"],
+  },
+};
+
+function formatBoardDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("fr-CD", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+}
+
+function formatBoardMoney(value) {
+  const numberValue = Number(value || 0);
+  return new Intl.NumberFormat("fr-CD", {
+    maximumFractionDigits: 0,
+    style: "currency",
+    currency: "USD",
+  }).format(Number.isFinite(numberValue) ? numberValue : 0);
+}
+
+function isPastDate(value) {
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+  return date < today;
+}
+
+function maintenanceItemTitle(row) {
+  return row.materiel_label || row.materiel_categorie || row.materiel_famille || "Materiel";
+}
+
+function MaintenanceBoard({ resourceKey, rows, count, onView, onCreate, canCreate }) {
+  const board = MAINTENANCE_BOARDS[resourceKey];
+  if (!board) return null;
+
+  const openRows = rows.filter((row) => board.openStatuses.includes(row.statut));
+  const doneRows = rows.filter((row) => board.doneStatuses.includes(row.statut));
+  const lateRows = openRows.filter((row) => isPastDate(row[board.plannedField]));
+  const totalCost = rows.reduce((total, row) => total + (Number(row[board.costField]) || 0), 0);
+  const materialCount = new Set(rows.map((row) => row.materiel_label).filter(Boolean)).size;
+  const priorityRows = [...lateRows, ...openRows.filter((row) => !lateRows.includes(row))].slice(0, 5);
+
+  return (
+    <section className={styles.maintenanceBoard} aria-label={board.title}>
+      <header className={styles.boardHeader}>
+        <div>
+          <span>Tableau de bord</span>
+          <h2>{board.title}</h2>
+          <p>{board.subtitle}</p>
+        </div>
+        {canCreate && (
+          <button type="button" className={styles.boardCreateButton} onClick={onCreate}>
+            <Plus size={17} /> Nouveau dossier
+          </button>
+        )}
+      </header>
+
+      <div className={styles.boardMetrics}>
+        <article>
+          <Clock3 size={18} />
+          <span>Ouverts</span>
+          <strong>{openRows.length}</strong>
+          <small>{count} dossier(s) au total</small>
+        </article>
+        <article>
+          <AlertTriangle size={18} />
+          <span>En retard</span>
+          <strong>{lateRows.length}</strong>
+          <small>Echeance depassee</small>
+        </article>
+        <article>
+          <CheckCircle2 size={18} />
+          <span>Termines</span>
+          <strong>{doneRows.length}</strong>
+          <small>Sur la page actuelle</small>
+        </article>
+        <article>
+          <Coins size={18} />
+          <span>Cout total</span>
+          <strong>{formatBoardMoney(totalCost)}</strong>
+          <small>{materialCount} materiel(s)</small>
+        </article>
+      </div>
+
+      <div className={styles.boardContent}>
+        <section className={styles.boardFocus}>
+          <div className={styles.boardSectionTitle}>
+            <Wrench size={17} />
+            <h3>Priorites</h3>
+          </div>
+          {priorityRows.length ? (
+            <div className={styles.priorityList}>
+              {priorityRows.map((row) => (
+                <button type="button" className={styles.priorityItem} onClick={() => onView(row)} key={row.__rowKey}>
+                  <strong>{maintenanceItemTitle(row)}</strong>
+                  <span>{STATUS_LABELS[row.statut] || row.statut}</span>
+                  <small>
+                    {lateRows.includes(row) ? "En retard" : "Ouvert"} - {formatBoardDate(row[board.plannedField] || row[board.dateField])}
+                  </small>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.boardEmpty}>Aucune priorite ouverte.</div>
+          )}
+        </section>
+
+        <section className={styles.boardLanes}>
+          {board.lanes.map((status) => {
+            const laneRows = rows.filter((row) => row.statut === status).slice(0, 4);
+            return (
+              <article className={styles.boardLane} key={status}>
+                <header>
+                  <span>{STATUS_LABELS[status] || status}</span>
+                  <strong>{rows.filter((row) => row.statut === status).length}</strong>
+                </header>
+                {laneRows.length ? laneRows.map((row) => (
+                  <button type="button" className={styles.laneItem} onClick={() => onView(row)} key={row.__rowKey}>
+                    <strong>{maintenanceItemTitle(row)}</strong>
+                    <small>{formatBoardDate(row[board.dateField])} - {formatBoardMoney(row[board.costField])}</small>
+                  </button>
+                )) : <p>Aucun dossier</p>}
+              </article>
+            );
+          })}
+        </section>
+      </div>
+    </section>
+  );
 }
 
 function DetailModal({ config, item, options, customActions, onCustomAction, onClose }) {
@@ -1032,32 +1196,42 @@ export default function ResourcePage({ resourceKey }) {
       {isLoading ? (
         <LoadingState />
       ) : (
-        <DataTable
-          columns={config.columns}
-          fields={config.fields}
-          options={options}
-          rows={sortedRows}
-          page={data.page}
-          totalPages={data.totalPages}
-          count={data.count}
-          viewMode={viewMode}
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          canView
-          canEdit={userCanUpdate}
-          canDelete={userCanDelete}
-          customActions={customActions}
-          onView={openView}
-          onEdit={openEdit}
-          onDelete={deleteItem}
-          onBulkDelete={deleteItems}
-          onCustomAction={runCustomAction}
-          onStatusChange={changeInlineStatus}
-          onPageChange={setPage}
-          onSort={changeSort}
-          sortableColumns={sortableColumns}
-          statusControls={statusControls}
-        />
+        <>
+          <MaintenanceBoard
+            resourceKey={resourceKey}
+            rows={sortedRows}
+            count={data.count}
+            canCreate={userCanCreate}
+            onCreate={openCreate}
+            onView={openView}
+          />
+          <DataTable
+            columns={config.columns}
+            fields={config.fields}
+            options={options}
+            rows={sortedRows}
+            page={data.page}
+            totalPages={data.totalPages}
+            count={data.count}
+            viewMode={viewMode}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            canView
+            canEdit={userCanUpdate}
+            canDelete={userCanDelete}
+            customActions={customActions}
+            onView={openView}
+            onEdit={openEdit}
+            onDelete={deleteItem}
+            onBulkDelete={deleteItems}
+            onCustomAction={runCustomAction}
+            onStatusChange={changeInlineStatus}
+            onPageChange={setPage}
+            onSort={changeSort}
+            sortableColumns={sortableColumns}
+            statusControls={statusControls}
+          />
+        </>
       )}
 
       {isFormOpen && (
