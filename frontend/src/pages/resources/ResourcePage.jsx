@@ -459,12 +459,31 @@ function DetailValue({ value, field, options, item }) {
 }
 
 const STATUS_LABELS = {
-  EN_ATTENTE: "En attente",
-  EN_COURS: "En cours",
-  TERMINE: "Termine",
-  TERMINEE: "Terminee",
+  true: "Actif",
+  false: "Inactif",
+  ACTIVE: "Active",
+  AFFECTE: "Affecte",
   ANNULE: "Annule",
   ANNULEE: "Annulee",
+  BON: "Bon",
+  DEPARTEMENT: "Departement",
+  DIRECTION: "Direction",
+  EN_ATTENTE: "En attente",
+  EN_ATTENTE_DEPARTEMENT: "En attente departement",
+  EN_COURS: "En cours",
+  EN_PANNE: "En panne",
+  EN_REPARATION: "En reparation",
+  EN_STOCK: "En stock",
+  EN_TRAITEMENT_MAGASIN: "Au magasin",
+  HORS_SERVICE: "Hors service",
+  HORS_STOCK: "Hors stock",
+  MAGASIN: "Magasin",
+  NEUF: "Neuf",
+  REJETEE: "Rejetee",
+  RETOURNEE: "Retournee",
+  TRAITEE: "Traitee",
+  TERMINE: "Termine",
+  TERMINEE: "Terminee",
 };
 
 const MAINTENANCE_BOARDS = {
@@ -520,6 +539,180 @@ function isPastDate(value) {
 
 function maintenanceItemTitle(row) {
   return row.materiel_label || row.materiel_categorie || row.materiel_famille || "Materiel";
+}
+
+function plainLabel(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  const key = String(value);
+  return STATUS_LABELS[key] || key.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function boardItemTitle(config, row) {
+  const candidates = config.columns
+    .filter((column) => !["statut", "is_active", "etat", "statut_stock"].includes(column.key) && column.type !== "date")
+    .slice(0, 2)
+    .map((column) => row[column.key])
+    .filter((value) => value !== null && value !== undefined && value !== "");
+  return candidates.map((value) => String(value)).join(" - ") || row.__rowKey || config.title;
+}
+
+function findBoardDateField(config) {
+  return config.sortColumns?.find((column) => column.type === "date")?.key
+    || config.columns.find((column) => column.type === "date")?.key
+    || config.fields.find((field) => field.type === "date" && !field.name?.includes("fin"))?.name;
+}
+
+function findBoardGroupField(config, quickFilterConfig) {
+  if (quickFilterConfig?.field) return quickFilterConfig.field;
+  return config.columns.find((column) => [
+    "statut",
+    "is_active",
+    "etat",
+    "statut_stock",
+    "type_mouvement",
+    "type_demande",
+    "type_document",
+    "type_inventaire",
+    "type_entretien",
+    "type_prestataire",
+    "entite_type",
+    "destination_type",
+  ].includes(column.key))?.key;
+}
+
+function isAttentionRow(row) {
+  const stock = Number(row.quantite_stock);
+  const seuil = Number(row.seuil_alerte);
+  return row.statut === false
+    || row.is_active === false
+    || ["EN_ATTENTE", "EN_ATTENTE_DEPARTEMENT", "EN_TRAITEMENT_MAGASIN", "REJETEE", "ANNULEE", "ANNULE"].includes(row.statut)
+    || ["EN_PANNE", "EN_REPARATION", "HORS_SERVICE"].includes(row.etat)
+    || row.statut_stock === "HORS_STOCK"
+    || (Number.isFinite(stock) && Number.isFinite(seuil) && stock <= seuil)
+    || isPastDate(row.date_fin_prevue);
+}
+
+function latestDate(rows, fieldName) {
+  if (!fieldName) return "-";
+  const dates = rows
+    .map((row) => new Date(row[fieldName]))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((left, right) => right.getTime() - left.getTime());
+  return dates.length ? formatBoardDate(dates[0]) : "-";
+}
+
+function buildGroupRows(rows, fieldName, quickFilterOptions) {
+  if (!fieldName) return [];
+  const configuredOptions = quickFilterOptions?.length
+    ? quickFilterOptions.map((option) => ({ value: option.value, label: option.label }))
+    : [...new Set(rows.map((row) => row[fieldName]).filter((value) => value !== null && value !== undefined && value !== ""))]
+      .slice(0, 5)
+      .map((value) => ({ value, label: plainLabel(value) }));
+
+  return configuredOptions.map((option) => ({
+    ...option,
+    count: rows.filter((row) => String(row[fieldName]) === String(option.value)).length,
+    rows: rows.filter((row) => String(row[fieldName]) === String(option.value)).slice(0, 3),
+  }));
+}
+
+function GenericResourceBoard({ config, rows, count, quickFilterConfig, quickFilterOptions, onView, onCreate, canCreate, onFilter }) {
+  const dateField = findBoardDateField(config);
+  const groupField = findBoardGroupField(config, quickFilterConfig);
+  const attentionRows = rows.filter(isAttentionRow);
+  const groupRows = buildGroupRows(rows, groupField, quickFilterOptions).filter((group) => group.count > 0);
+  const recentRows = dateField
+    ? [...rows].sort((left, right) => normalizeSortValue(right[dateField], { type: "date" }) - normalizeSortValue(left[dateField], { type: "date" })).slice(0, 4)
+    : rows.slice(0, 4);
+  const boardTitle = `Pilotage ${config.title.toLowerCase()}`;
+
+  return (
+    <section className={styles.maintenanceBoard} aria-label={boardTitle}>
+      <header className={styles.boardHeader}>
+        <div>
+          <span>Tableau de bord</span>
+          <h2>{boardTitle}</h2>
+          <p>{config.description}</p>
+        </div>
+        {canCreate && (
+          <button type="button" className={styles.boardCreateButton} onClick={onCreate}>
+            <Plus size={17} /> Nouveau
+          </button>
+        )}
+      </header>
+
+      <div className={styles.boardMetrics}>
+        <article>
+          <Table2 size={18} />
+          <span>Total</span>
+          <strong>{count}</strong>
+          <small>Enregistrements</small>
+        </article>
+        <article>
+          <Search size={18} />
+          <span>Affiches</span>
+          <strong>{rows.length}</strong>
+          <small>Page et filtres actifs</small>
+        </article>
+        <article>
+          <AlertTriangle size={18} />
+          <span>A surveiller</span>
+          <strong>{attentionRows.length}</strong>
+          <small>Anomalies ou attentes</small>
+        </article>
+        <article>
+          <Clock3 size={18} />
+          <span>Derniere date</span>
+          <strong>{latestDate(rows, dateField)}</strong>
+          <small>{dateField ? humanizeFieldName(dateField) : "Aucune date"}</small>
+        </article>
+      </div>
+
+      <div className={styles.boardContent}>
+        <section className={styles.boardFocus}>
+          <div className={styles.boardSectionTitle}>
+            <AlertTriangle size={17} />
+            <h3>A surveiller</h3>
+          </div>
+          {attentionRows.length ? (
+            <div className={styles.priorityList}>
+              {attentionRows.slice(0, 5).map((row) => (
+                <button type="button" className={styles.priorityItem} onClick={() => onView(row)} key={row.__rowKey}>
+                  <strong>{boardItemTitle(config, row)}</strong>
+                  <span>{plainLabel(row.statut ?? row.etat ?? row.statut_stock ?? row.is_active)}</span>
+                  <small>{dateField ? formatBoardDate(row[dateField]) : config.title}</small>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.boardEmpty}>Aucune alerte sur cette page.</div>
+          )}
+        </section>
+
+        <section className={styles.boardLanes}>
+          {(groupRows.length ? groupRows : [{ value: "recent", label: "Recents", count: recentRows.length, rows: recentRows }]).map((group) => (
+            <article className={styles.boardLane} key={String(group.value)}>
+              <header>
+                <span>{group.label}</span>
+                <strong>{group.count}</strong>
+              </header>
+              {group.rows.length ? group.rows.map((row) => (
+                <button type="button" className={styles.laneItem} onClick={() => onView(row)} key={row.__rowKey}>
+                  <strong>{boardItemTitle(config, row)}</strong>
+                  <small>{dateField ? formatBoardDate(row[dateField]) : plainLabel(row[groupField])}</small>
+                </button>
+              )) : <p>Aucun dossier</p>}
+              {quickFilterConfig?.field === groupField && group.value !== "recent" && (
+                <button type="button" className={styles.boardFilterButton} onClick={() => onFilter(group.value)}>
+                  Filtrer
+                </button>
+              )}
+            </article>
+          ))}
+        </section>
+      </div>
+    </section>
+  );
 }
 
 function MaintenanceBoard({ resourceKey, rows, count, onView, onCreate, canCreate }) {
@@ -619,6 +812,35 @@ function MaintenanceBoard({ resourceKey, rows, count, onView, onCreate, canCreat
         </section>
       </div>
     </section>
+  );
+}
+
+function ResourceBoard({ resourceKey, config, rows, count, quickFilterConfig, quickFilterOptions, onView, onCreate, canCreate, onFilter }) {
+  if (MAINTENANCE_BOARDS[resourceKey]) {
+    return (
+      <MaintenanceBoard
+        resourceKey={resourceKey}
+        rows={rows}
+        count={count}
+        canCreate={canCreate}
+        onCreate={onCreate}
+        onView={onView}
+      />
+    );
+  }
+
+  return (
+    <GenericResourceBoard
+      config={config}
+      rows={rows}
+      count={count}
+      quickFilterConfig={quickFilterConfig}
+      quickFilterOptions={quickFilterOptions}
+      canCreate={canCreate}
+      onCreate={onCreate}
+      onView={onView}
+      onFilter={onFilter}
+    />
   );
 }
 
@@ -1197,13 +1419,20 @@ export default function ResourcePage({ resourceKey }) {
         <LoadingState />
       ) : (
         <>
-          <MaintenanceBoard
+          <ResourceBoard
             resourceKey={resourceKey}
+            config={config}
             rows={sortedRows}
             count={data.count}
+            quickFilterConfig={quickFilterConfig}
+            quickFilterOptions={quickFilterOptions}
             canCreate={userCanCreate}
             onCreate={openCreate}
             onView={openView}
+            onFilter={(value) => {
+              setPage(1);
+              setQuickFilter(value);
+            }}
           />
           <DataTable
             columns={config.columns}

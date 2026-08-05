@@ -405,6 +405,25 @@
   font-size: var(--font-size-xs);
 }
 
+.boardFilterButton {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-2);
+  border: 1px solid #bfd0ff;
+  border-radius: var(--radius-sm);
+  background: #f2f6ff;
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 750;
+}
+
+.boardFilterButton:hover {
+  background: #eaf1ff;
+}
+
 .modalBackdrop {
   position: fixed;
   inset: 0;
