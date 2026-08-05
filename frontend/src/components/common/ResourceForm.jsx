@@ -3,11 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createResourceApi } from "../../api/resourceApi";
 import { getApiErrorMessage, getFieldError } from "../../utils/apiErrors";
+import { buildStatusDateValues, todayDateInputValue } from "../../utils/statusDates";
 import styles from "./ResourceForm.module.css";
-
-function todayValue() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function shouldDefaultDateToday(field, formMode) {
   if (formMode !== "create" || field.type !== "date") return false;
@@ -25,7 +22,7 @@ function shouldDefaultDateToday(field, formMode) {
 function initialValue(field, item, formMode) {
   if (item && item[field.name] !== undefined && item[field.name] !== null) return item[field.name];
   if (field.defaultValue !== undefined) return field.defaultValue;
-  if (shouldDefaultDateToday(field, formMode)) return todayValue();
+  if (shouldDefaultDateToday(field, formMode)) return todayDateInputValue();
   if (field.type === "checkbox") return false;
   return "";
 }
@@ -364,6 +361,12 @@ export default function ResourceForm({ config, item, mode, options, user, errors
     setValues((current) => {
       const field = baseFieldByName[name];
       const nextValues = { ...current, [name]: normalizeInputValue(field, value) };
+      Object.assign(nextValues, buildStatusDateValues({
+        fields: baseFields,
+        currentValues: nextValues,
+        fieldName: name,
+        value: nextValues[name],
+      }));
       (field?.clears || []).forEach((fieldName) => {
         nextValues[fieldName] = "";
       });
@@ -425,6 +428,12 @@ export default function ResourceForm({ config, item, mode, options, user, errors
         .map((field) => [field.name, normalizeValue(field, values[field.name])])
         .filter(([, value]) => value !== undefined),
     );
+    Object.assign(payload, buildStatusDateValues({
+      fields: baseFields,
+      currentValues: values,
+      fieldName: "statut",
+      value: values.statut,
+    }));
     onSubmit(payload);
   };
 

@@ -12,6 +12,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { getApiErrorMessage, normalizeFieldErrors } from "../../utils/apiErrors";
 import { normalizePage } from "../../utils/pagination";
 import { canWrite } from "../../utils/permissions";
+import { buildStatusDateValues } from "../../utils/statusDates";
 import styles from "./ResourcePage.module.css";
 
 const perpage = 50;
@@ -876,7 +877,16 @@ export default function ResourcePage({ resourceKey }) {
     try {
       setError("");
       setFeedback("");
-      await api.update(getRowKey(config, item), { [fieldName]: value });
+      const payload = {
+        [fieldName]: value,
+        ...buildStatusDateValues({
+          fields: config.fields,
+          currentValues: item,
+          fieldName,
+          value,
+        }),
+      };
+      await api.update(getRowKey(config, item), payload);
       setViewingItem(null);
       setFeedback("Statut mis a jour avec succes.");
       loadData();
