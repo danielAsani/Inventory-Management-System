@@ -185,6 +185,33 @@
   color: var(--color-text-muted);
 }
 
+.statusButton {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  vertical-align: middle;
+}
+
+.statusButton:hover {
+  background: var(--color-surface-muted);
+}
+
+.statusButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.statusButton > svg {
+  flex: 0 0 auto;
+  color: var(--color-text-subtle);
+}
+
 .table td.familyColumn {
   background: #fffdf7;
 }
@@ -271,7 +298,8 @@
 }
 
 .rowMenu,
-.rowSubmenu {
+.rowSubmenu,
+.statusMenu {
   position: absolute;
   z-index: 20;
   display: grid;
@@ -292,6 +320,46 @@
   position: fixed;
   top: auto;
   right: auto;
+}
+
+.statusMenu {
+  min-width: 14rem;
+}
+
+.statusMenuTitle {
+  padding: 0.35rem var(--space-2) var(--space-2);
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.statusOption {
+  display: flex;
+  width: 100%;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.statusOption:hover {
+  background: var(--color-surface-muted);
+}
+
+.statusOption small {
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 750;
+}
+
+.statusOptionActive {
+  background: #f2f6ff;
 }
 
 .rowSubmenu {

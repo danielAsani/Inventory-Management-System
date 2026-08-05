@@ -1,4 +1,4 @@
-import { ArrowUpDown, ChevronLeft, ChevronRight, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import EmptyState from "./EmptyState";
 import styles from "./DataTable.module.css";
@@ -160,10 +160,6 @@ function menuActionClassName(action) {
   return [styles.menuItem, action.variant ? styles[`action${action.variant}`] : ""].filter(Boolean).join(" ");
 }
 
-function isStatusAction(action) {
-  return /panne|reparation|hors service|statut|situation|valider|rejeter|finaliser|retour/i.test(action.label || "");
-}
-
 export default function DataTable({
   columns,
   fields = [],
@@ -182,16 +178,22 @@ export default function DataTable({
   onDelete,
   onBulkDelete,
   onCustomAction,
+  onStatusChange,
   onPageChange,
   onSort,
   sortableColumns,
+  statusControls = [],
 }) {
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
   const [openMenu, setOpenMenu] = useState(null);
-  const [openStatusKey, setOpenStatusKey] = useState("");
+  const [openStatusCell, setOpenStatusCell] = useState(null);
   const showActions = canView || canEdit || canDelete || customActions.length > 0;
   const sortableKeys = new Set((sortableColumns || columns).map((column) => column.key));
   const fieldByName = Object.fromEntries(fields.map((field) => [field.name, field]));
+  const statusControlByField = useMemo(
+    () => Object.fromEntries(statusControls.map((control) => [control.field, control])),
+    [statusControls],
+  );
   const selectedRows = useMemo(
     () => rows.filter((row) => selectedKeys.has(String(row.__rowKey))),
     [rows, selectedKeys],
@@ -201,7 +203,7 @@ export default function DataTable({
   useEffect(() => {
     setSelectedKeys(new Set());
     setOpenMenu(null);
-    setOpenStatusKey("");
+    setOpenStatusCell(null);
   }, [rows]);
 
   if (!rows.length) return <EmptyState />;
@@ -225,7 +227,7 @@ export default function DataTable({
 
   const closeMenus = () => {
     setOpenMenu(null);
-    setOpenStatusKey("");
+    setOpenStatusCell(null);
   };
 
   const runAction = (callback) => {
@@ -253,42 +255,63 @@ export default function DataTable({
     });
   };
 
+  const toggleStatusCell = (event, row, control) => {
+    const key = `${row.__rowKey}:${control.field}`;
+    const rect = event.currentTarget.getBoundingClientRect();
+    setOpenMenu(null);
+    setOpenStatusCell((current) => {
+      if (current?.key === key) return null;
+      const menuWidth = 230;
+      return {
+        key,
+        row,
+        control,
+        top: rect.bottom + 8,
+        left: Math.max(12, Math.min(rect.left, window.innerWidth - menuWidth - 12)),
+      };
+    });
+  };
+
+  const renderStatusMenu = () => {
+    if (!openStatusCell) return null;
+    const { row, control } = openStatusCell;
+    const currentValue = row[control.field];
+
+    return (
+      <div className={`${styles.statusMenu} ${styles.floatingMenu}`} style={{ top: openStatusCell.top, left: openStatusCell.left }} role="menu">
+        <span className={styles.statusMenuTitle}>{control.label}</span>
+        {control.options.map((option) => {
+          const optionValue = typeof option === "string" ? option : option.value;
+          const isActive = String(optionValue) === String(currentValue);
+          return (
+            <button
+              type="button"
+              className={`${styles.statusOption} ${isActive ? styles.statusOptionActive : ""}`}
+              onClick={() => {
+                closeMenus();
+                if (!isActive) onStatusChange?.(row, control.field, optionValue);
+              }}
+              key={String(optionValue)}
+            >
+              {renderValue({ [control.field]: optionValue }, { key: control.field, type: control.type }, fieldByName, options)}
+              {isActive && <small>Actuel</small>}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderFloatingMenu = () => {
     if (!openMenu) return null;
     const row = openMenu.row;
     const visibleCustomActions = customActions.filter((action) => !action.visibleWhen || action.visibleWhen(row));
-    const statusActions = visibleCustomActions.filter(isStatusAction);
-    const directActions = visibleCustomActions.filter((action) => !isStatusAction(action));
 
     return (
       <div className={`${styles.rowMenu} ${styles.floatingMenu}`} style={{ top: openMenu.top, left: openMenu.left }} role="menu">
         {canView && <button type="button" className={styles.menuItem} onClick={() => runAction(() => onView(row))}>Voir</button>}
         {canEdit && <button type="button" className={styles.menuItem} onClick={() => runAction(() => onEdit(row))}>Modifier</button>}
-        {statusActions.length > 0 && (
-          <div
-            className={styles.menuWithSubmenu}
-            onMouseEnter={() => setOpenStatusKey(openMenu.key)}
-            onMouseLeave={() => setOpenStatusKey("")}
-          >
-            <button
-              type="button"
-              className={styles.menuItem}
-              onClick={() => setOpenStatusKey((current) => (current === openMenu.key ? "" : openMenu.key))}
-            >
-              Statut / situation
-            </button>
-            {openStatusKey === openMenu.key && (
-              <div className={styles.rowSubmenu} role="menu">
-                {statusActions.map((action) => (
-                  <button type="button" className={menuActionClassName(action)} onClick={() => runAction(() => onCustomAction(action, row))} key={action.label}>
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        {directActions.map((action) => (
+        {visibleCustomActions.map((action) => (
           <button type="button" className={menuActionClassName(action)} onClick={() => runAction(() => onCustomAction(action, row))} key={action.label}>
             {action.label}
           </button>
@@ -329,6 +352,23 @@ export default function DataTable({
     </div>
   );
 
+  const renderCell = (row, column) => {
+    const control = canEdit ? statusControlByField[column.key] : null;
+    if (!control) return renderValue(row, column, fieldByName, options);
+
+    return (
+      <button
+        type="button"
+        className={styles.statusButton}
+        onClick={(event) => toggleStatusCell(event, row, control)}
+        aria-label={`Changer ${control.label}`}
+      >
+        {renderValue(row, column, fieldByName, options)}
+        <ChevronDown size={13} />
+      </button>
+    );
+  };
+
   return (
     <div className={styles.wrap}>
       {selectedRows.length > 0 && (
@@ -358,20 +398,20 @@ export default function DataTable({
                   </label>
                   <div>
                     <span>{primaryColumn?.label || "Reference"}</span>
-                    <strong>{primaryColumn ? renderValue(row, primaryColumn, fieldByName, options) : row.__rowKey}</strong>
+                    <strong>{primaryColumn ? renderCell(row, primaryColumn) : row.__rowKey}</strong>
                   </div>
                   <em>#{row.__rowKey}</em>
                 </header>
                 {badgeColumns.length > 0 && (
                   <div className={styles.cardBadges}>
-                    {badgeColumns.map((column) => <span key={column.key}>{renderValue(row, column, fieldByName, options)}</span>)}
+                    {badgeColumns.map((column) => <span key={column.key}>{renderCell(row, column)}</span>)}
                   </div>
                 )}
                 <dl className={styles.cardDetails}>
                   {plainColumns.map((column) => (
                     <div key={column.key}>
                       <dt>{column.label}</dt>
-                      <dd>{renderValue(row, column, fieldByName, options)}</dd>
+                      <dd>{renderCell(row, column)}</dd>
                     </div>
                   ))}
                 </dl>
@@ -407,7 +447,7 @@ export default function DataTable({
                   <td className={styles.selectionCell}>
                     <input type="checkbox" checked={selectedKeys.has(String(row.__rowKey))} onChange={() => toggleRow(row)} aria-label="Selectionner la ligne" />
                   </td>
-                  {columns.map((column) => <td className={columnClassName(column)} key={column.key}>{renderValue(row, column, fieldByName, options)}</td>)}
+                  {columns.map((column) => <td className={columnClassName(column)} key={column.key}>{renderCell(row, column)}</td>)}
                   {showActions && <td>{renderActions(row)}</td>}
                 </tr>
               ))}
@@ -416,6 +456,7 @@ export default function DataTable({
         </div>
       )}
       {renderFloatingMenu()}
+      {renderStatusMenu()}
       <div className={styles.pagination}>
         <span>{count} enregistrement(s)</span>
         <div>
