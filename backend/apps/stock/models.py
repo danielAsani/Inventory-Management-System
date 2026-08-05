@@ -93,7 +93,7 @@ class Materiel(models.Model):
     marque = models.CharField(max_length=100)
     modele = models.CharField(max_length=150, blank=True, null=True)
 
-    date_achat = models.DateField()
+    date_achat = models.DateField(default=timezone.localdate)
     date_mise_en_service = models.DateField(blank=True, null=True)
 
     prix_achat = models.DecimalField(max_digits=13, decimal_places=2)

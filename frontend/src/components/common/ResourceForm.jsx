@@ -5,9 +5,27 @@ import { createResourceApi } from "../../api/resourceApi";
 import { getApiErrorMessage, getFieldError } from "../../utils/apiErrors";
 import styles from "./ResourceForm.module.css";
 
-function initialValue(field, item) {
+function todayValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function shouldDefaultDateToday(field, formMode) {
+  if (formMode !== "create" || field.type !== "date") return false;
+  if (field.defaultValue !== undefined || field.autoToday === false) return false;
+  return ![
+    "date_fin",
+    "date_retour",
+    "garantie_fin",
+    "date_fin_prevue",
+    "date_fin_reelle",
+    "prochaine_date",
+  ].includes(field.name);
+}
+
+function initialValue(field, item, formMode) {
   if (item && item[field.name] !== undefined && item[field.name] !== null) return item[field.name];
   if (field.defaultValue !== undefined) return field.defaultValue;
+  if (shouldDefaultDateToday(field, formMode)) return todayValue();
   if (field.type === "checkbox") return false;
   return "";
 }
@@ -269,7 +287,7 @@ export default function ResourceForm({ config, item, mode, options, user, errors
     }),
     [config.fields, formMode],
   );
-  const [values, setValues] = useState(() => Object.fromEntries(baseFields.map((field) => [field.name, initialValue(field, item)])));
+  const [values, setValues] = useState(() => Object.fromEntries(baseFields.map((field) => [field.name, initialValue(field, item, formMode)])));
   const visibleFields = useMemo(
     () => baseFields.filter((field) => {
       if (typeof field.visibleWhen === "function") {
