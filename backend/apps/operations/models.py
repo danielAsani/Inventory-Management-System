@@ -6,7 +6,6 @@ from django.core.exceptions import ValidationError
 TRACEABILITY_TYPE_PREFIXES = {
     "DEPARTEMENT": "DEP",
     "DIRECTION": "DIR",
-    "UTILISATEUR": "USR",
     "AGENT": "AGT",
     "MAGASIN": "MAG",
 }
@@ -122,9 +121,8 @@ class MouvementStock(models.Model):
 
 class Affectation(models.Model):
     class EntiteType(models.TextChoices):
-        DEPARTEMENT = "DEPARTEMENT", "DÃ©partement"
+        DEPARTEMENT = "DEPARTEMENT", "Departement"
         DIRECTION = "DIRECTION", "Direction"
-        UTILISATEUR = "UTILISATEUR", "Utilisateur"
         AGENT = "AGENT", "Agent"
         MAGASIN = "MAGASIN", "Magasin"
 

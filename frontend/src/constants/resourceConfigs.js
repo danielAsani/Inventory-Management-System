@@ -208,7 +208,6 @@ function resourceForEntiteType({ values }) {
   const resources = {
     DEPARTEMENT: "departements",
     DIRECTION: "directions",
-    UTILISATEUR: "users",
     MAGASIN: "magasins",
   };
   return resources[values.entite_type] || null;
@@ -634,8 +633,8 @@ export const resourceConfigs = {
       { name: "id_famille", label: "Famille", type: "recordPicker", required: true, resource: "familles", virtual: true, createOnly: true, clears: ["id_categorie", "id_materiel"], searchPlaceholder: "Rechercher une famille..." },
       { name: "id_categorie", label: "Categorie", type: "recordPicker", required: true, resource: "categories", virtual: true, createOnly: true, filterOptions: categoryBelongsToSelectedFamily, disabledWhen: needsSelectedFamily, clears: ["id_materiel"], searchPlaceholder: "Rechercher une categorie..." },
       { name: "id_materiel", label: "Materiel disponible", type: "recordPicker", required: true, resource: "materiels", filterOptions: materialBelongsToSelectedCategory, availableWhen: materialIsAvailableForAffectation, disabledWhen: needsSelectedCategory, searchPlaceholder: "Rechercher par code, marque, modele, categorie, magasin...", emptyText: "Aucun materiel disponible pour cette categorie." },
-      { name: "entite_type", label: "Type d'entite", type: "select", required: true, options: ["DEPARTEMENT", "DIRECTION", "UTILISATEUR", "AGENT", "MAGASIN"], clears: ["entite_id", "agent_id_departement", "agent_id_direction", "agent_matricule", "agent_nom_complet", "agent_telephone"] },
-      { name: "entite_id", label: "Destinataire", type: "recordPicker", required: true, resource: resourceForEntiteType, optionResources: ["departements", "directions", "users", "magasins"], visibleWhen: isNotAgentAffectation, disabledWhen: needsEntiteType, searchPlaceholder: "Rechercher le destinataire..." },
+      { name: "entite_type", label: "Type d'entite", type: "select", required: true, options: ["DEPARTEMENT", "DIRECTION", "AGENT", "MAGASIN"], clears: ["entite_id", "agent_id_departement", "agent_id_direction", "agent_matricule", "agent_nom_complet", "agent_telephone"] },
+      { name: "entite_id", label: "Destinataire", type: "recordPicker", required: true, resource: resourceForEntiteType, optionResources: ["departements", "directions", "magasins"], visibleWhen: isNotAgentAffectation, disabledWhen: needsEntiteType, searchPlaceholder: "Rechercher le destinataire..." },
       { name: "agent_id_departement", label: "Departement de l'agent", type: "recordPicker", resource: "departements", requiredWhen: isAgentAffectation, visibleWhen: isAgentAffectation, clears: ["agent_id_direction"], searchPlaceholder: "Rechercher un departement..." },
       { name: "agent_id_direction", label: "Direction de l'agent", type: "recordPicker", resource: "directions", requiredWhen: isAgentAffectation, visibleWhen: isAgentAffectation, filterOptions: directionBelongsToAgentDepartment, disabledWhen: needsAgentDepartment, searchPlaceholder: "Rechercher une direction..." },
       { name: "agent_matricule", label: "Matricule agent", requiredWhen: isAgentAffectation, visibleWhen: isAgentAffectation },
