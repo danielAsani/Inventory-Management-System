@@ -76,7 +76,6 @@ class Command(BaseCommand):
                 user.id_departement = scope_fields["id_departement"]
                 user.id_direction = scope_fields["id_direction"]
                 user.id_service = scope_fields["id_service"]
-                user.id_magasin = scope_fields["id_magasin"]
                 user.save()
                 self.stdout.write(self.style.SUCCESS(f"{item['matricule']} mis a jour."))
                 continue
@@ -143,7 +142,6 @@ class Command(BaseCommand):
             "id_departement": None,
             "id_direction": None,
             "id_service": None,
-            "id_magasin": None,
         }
         if item["scope_type"] == "DEPARTEMENT":
             fields["id_departement"] = organisation["departement"]

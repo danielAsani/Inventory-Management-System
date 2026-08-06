@@ -31,14 +31,6 @@ const QUICK_FILTERS = {
     field: "id_departement",
     resource: "departements",
   },
-  magasins: {
-    label: "Statut",
-    field: "statut",
-    options: [
-      { value: "true", label: "Actif" },
-      { value: "false", label: "Inactif" },
-    ],
-  },
   familles: {
     label: "Statut",
     field: "statut",
@@ -94,7 +86,6 @@ const QUICK_FILTERS = {
     options: [
       { value: "ENTREE", label: "Entree" },
       { value: "SORTIE", label: "Sortie" },
-      { value: "TRANSFERT", label: "Transfert" },
       { value: "AJUSTEMENT", label: "Ajustement" },
     ],
   },
@@ -183,9 +174,6 @@ function getOptionLabel(resourceKey, item) {
   if (resourceKey === "directions") {
     return [upperCode(item.code_direction), item.nom_direction, item.departement_nom].filter(Boolean).join(" - ");
   }
-  if (resourceKey === "magasins") {
-    return [upperCode(item.code_magasin), item.nom_magasin, item.direction_nom].filter(Boolean).join(" - ");
-  }
   if (resourceKey === "consommables") {
     return [upperCode(item.code_consommable), item.nom_consommable, item.categorie_nom].filter(Boolean).join(" - ");
   }
@@ -249,7 +237,6 @@ function getServerFilterParams(resourceKey, quickFilterConfig, quickFilter) {
     "familles",
     "fournisseurs",
     "inventaires",
-    "magasins",
     "materiels",
     "mouvements",
     "reparations",
@@ -1260,6 +1247,23 @@ export default function ResourcePage({ resourceKey }) {
   };
 
   const changeInlineStatus = async (item, fieldName, value) => {
+    if (resourceKey === "materiels" && fieldName === "etat" && ["EN_PANNE", "EN_REPARATION"].includes(value)) {
+      const targetConfig = resourceConfigs.reparations;
+      setFieldErrors({});
+      setError("");
+      await ensureOptionsForConfig(targetConfig);
+      setActionForm({
+        action: { label: value === "EN_PANNE" ? "Declarer la panne" : "Ouvrir une reparation" },
+        config: targetConfig,
+        initialValues: {
+          id_materiel: item.id_materiel,
+          statut: value === "EN_PANNE" ? "EN_ATTENTE" : "EN_COURS",
+          date_reparation: new Date().toISOString().slice(0, 10),
+        },
+      });
+      return;
+    }
+
     try {
       setError("");
       setFeedback("");

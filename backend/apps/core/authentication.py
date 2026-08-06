@@ -17,7 +17,6 @@ def add_user_claims(token, user):
     token["scope_type"] = user.scope_type
     token["id_departement"] = _scope_id(user, "id_departement")
     token["id_direction"] = _scope_id(user, "id_direction")
-    token["id_magasin"] = _scope_id(user, "id_magasin")
     return token
 
 

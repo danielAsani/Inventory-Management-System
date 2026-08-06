@@ -73,8 +73,6 @@ class UsersSerializer(SanitizedModelSerializer):
             return f"Departement: {obj.id_departement.nom_departement}"
         if obj.scope_type == Users.ScopeType.DIRECTION and obj.id_direction:
             return f"Direction: {obj.id_direction.nom_direction}"
-        if obj.scope_type == Users.ScopeType.MAGASIN and obj.id_magasin:
-            return f"Magasin: {obj.id_magasin.nom_magasin}"
         return obj.scope_type or "-"
 
     def validate_email(self, value):
@@ -126,7 +124,6 @@ class UsersSerializer(SanitizedModelSerializer):
             attrs["id_departement"] = None
             attrs["id_direction"] = None
             attrs["id_service"] = None
-            attrs["id_magasin"] = None
 
             if role.code_role == "MAGASIN":
                 queryset = Users.objects.filter(
@@ -146,7 +143,6 @@ class UsersSerializer(SanitizedModelSerializer):
         scope_fields = {
             Users.ScopeType.DEPARTEMENT: "id_departement",
             Users.ScopeType.DIRECTION: "id_direction",
-            Users.ScopeType.MAGASIN: "id_magasin",
         }
 
         if scope_type == Users.ScopeType.GENERAL:

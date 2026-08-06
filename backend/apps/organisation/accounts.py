@@ -71,7 +71,6 @@ def ensure_department_account(departement):
         "id_departement": departement,
         "id_direction": None,
         "id_service": None,
-        "id_magasin": None,
         "is_active": departement.statut,
     }
     for field, value in updates.items():
@@ -115,7 +114,6 @@ def ensure_direction_account(direction):
         "id_departement": None,
         "id_direction": direction,
         "id_service": None,
-        "id_magasin": None,
         "is_active": direction.statut and direction.id_departement.statut,
     }
     for field, value in updates.items():

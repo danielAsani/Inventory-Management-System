@@ -8,7 +8,6 @@ class Demande(models.Model):
     class OrigineType(models.TextChoices):
         DEPARTEMENT = "DEPARTEMENT", "Departement"
         DIRECTION = "DIRECTION", "Direction"
-        MAGASIN = "MAGASIN", "Magasin"
 
     class TypeDemande(models.TextChoices):
         ACHAT = "ACHAT", "Achat"

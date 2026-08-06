@@ -133,11 +133,9 @@ function optionSearchText(option) {
     item.nom_consommable,
     item.unite_nom,
     item.quantite_stock,
-    item.magasin_nom,
     item.etat,
     item.nom_departement,
     item.nom_direction,
-    item.nom_magasin,
     item.nom_famille,
     item.nom_categorie,
     item.code_unite,
@@ -156,7 +154,6 @@ function recordPrimary(option) {
     "code_materiel",
     "code_departement",
     "code_direction",
-    "code_magasin",
     "code_famille",
     "code_categorie",
     "code_consommable",
@@ -172,7 +169,6 @@ function recordSecondary(option) {
     || firstRecordValue(record, [
       "nom_departement",
       "nom_direction",
-      "nom_magasin",
       "nom_famille",
       "nom_categorie",
       "nom_consommable",
@@ -196,7 +192,7 @@ function recordStatus(option) {
   const stock = record.quantite_stock !== undefined && record.quantite_stock !== null
     ? `Stock: ${record.quantite_stock}${record.unite_nom ? ` ${record.unite_nom}` : ""}`
     : "";
-  return [stock, record.magasin_nom, record.etat].filter(Boolean).join(" - ")
+  return [stock, record.etat].filter(Boolean).join(" - ")
     || (record.statut === false || record.is_active === false ? "Inactif" : "")
     || (record.statut === true || record.is_active === true ? "Actif" : "");
 }

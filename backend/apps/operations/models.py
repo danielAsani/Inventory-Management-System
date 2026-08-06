@@ -7,7 +7,6 @@ TRACEABILITY_TYPE_PREFIXES = {
     "DEPARTEMENT": "DEP",
     "DIRECTION": "DIR",
     "AGENT": "AGT",
-    "MAGASIN": "MAG",
 }
 
 
@@ -19,7 +18,6 @@ class MouvementStock(models.Model):
     class TypeMouvement(models.TextChoices):
         ENTREE = "ENTREE", "EntrÃ©e"
         SORTIE = "SORTIE", "Sortie"
-        TRANSFERT = "TRANSFERT", "Transfert"
         AJUSTEMENT = "AJUSTEMENT", "Ajustement"
 
     id_mouvement = models.AutoField(primary_key=True)
@@ -49,24 +47,6 @@ class MouvementStock(models.Model):
 
     quantite = models.PositiveIntegerField(default=1)
 
-    magasin_source = models.ForeignKey(
-        "stock.Magasin",
-        on_delete=models.PROTECT,
-        db_column="magasin_source_id",
-        related_name="mouvements_sortants",
-        blank=True,
-        null=True
-    )
-
-    magasin_destination = models.ForeignKey(
-        "stock.Magasin",
-        on_delete=models.PROTECT,
-        db_column="magasin_destination_id",
-        related_name="mouvements_entrants",
-        blank=True,
-        null=True
-    )
-
     date_mouvement = models.DateField(default=timezone.localdate)
 
     fait_par = models.ForeignKey(
@@ -93,25 +73,6 @@ class MouvementStock(models.Model):
         if self.id_materiel and self.id_consommable:
             errors["id_materiel"] = "Le mouvement ne peut pas concerner un matÃ©riel et un consommable en mÃªme temps."
 
-        if self.type_mouvement == self.TypeMouvement.ENTREE:
-            if not self.magasin_destination:
-                errors["magasin_destination"] = "Une entrÃ©e doit avoir un magasin de destination."
-
-        if self.type_mouvement == self.TypeMouvement.SORTIE:
-            if not self.magasin_source:
-                errors["magasin_source"] = "Une sortie doit avoir un magasin source."
-
-        if self.type_mouvement == self.TypeMouvement.TRANSFERT:
-            if not self.magasin_source:
-                errors["magasin_source"] = "Un transfert doit avoir un magasin source."
-
-            if not self.magasin_destination:
-                errors["magasin_destination"] = "Un transfert doit avoir un magasin de destination."
-
-            if self.magasin_source and self.magasin_destination:
-                if self.magasin_source == self.magasin_destination:
-                    errors["magasin_destination"] = "Le magasin source et le magasin destination doivent Ãªtre diffÃ©rents."
-
         if errors:
             raise ValidationError(errors)
 
@@ -124,7 +85,6 @@ class Affectation(models.Model):
         DEPARTEMENT = "DEPARTEMENT", "Departement"
         DIRECTION = "DIRECTION", "Direction"
         AGENT = "AGENT", "Agent"
-        MAGASIN = "MAGASIN", "Magasin"
 
     class StatutAffectation(models.TextChoices):
         ACTIVE = "ACTIVE", "Active"

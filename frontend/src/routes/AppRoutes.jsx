@@ -30,7 +30,6 @@ export default function AppRoutes() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/organisation/departements" element={<ResourceRoute resourceKey="departements" />} />
         <Route path="/organisation/directions" element={<ResourceRoute resourceKey="directions" />} />
-        <Route path="/stock/magasins" element={<ResourceRoute resourceKey="magasins" />} />
         <Route path="/catalogue/familles" element={<ResourceRoute resourceKey="familles" />} />
         <Route path="/catalogue/categories" element={<ResourceRoute resourceKey="categories" />} />
         <Route path="/catalogue/unites" element={<Navigate to="/catalogue/categories" replace />} />

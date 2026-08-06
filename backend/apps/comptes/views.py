@@ -32,7 +32,6 @@ class UsersViewSet(ModelViewSet):
         "id_role",
         "id_departement",
         "id_direction",
-        "id_magasin",
     )
     serializer_class = UsersSerializer
     filter_backends = [SearchFilter]

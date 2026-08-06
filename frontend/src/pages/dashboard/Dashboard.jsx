@@ -1,4 +1,4 @@
-import { Boxes, PackageCheck, PackageSearch, TriangleAlert, Warehouse } from "lucide-react";
+import { Boxes, PackageCheck, PackageSearch, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { getDashboardStats } from "../../api/dashboardApi";
 import EmptyState from "../../components/common/EmptyState";
@@ -15,7 +15,6 @@ function buildMetrics(metrics = {}) {
   return [
     { label: "Materiels", value: metrics.materiels_total, hint: `${metrics.materiels_affectes || 0} affectes`, icon: PackageSearch, tone: "info" },
     { label: "Consommables", value: metrics.consommables_total, hint: "Lignes de stock", icon: Boxes, tone: "neutral" },
-    { label: "Magasins", value: metrics.magasins_total, hint: "Emplacements", icon: Warehouse, tone: "neutral" },
     { label: "A reparer", value: metrics.materiels_en_reparation, hint: "En intervention", icon: PackageCheck, tone: "warning" },
     { label: "Stock faible", value: metrics.stock_faible, hint: "A traiter", icon: TriangleAlert, tone: "danger" },
   ];
@@ -163,7 +162,7 @@ export default function Dashboard() {
         {movements.length ? (
           <div className={styles.tableWrap}>
             <table>
-              <thead><tr><th>ID</th><th>Type</th><th>Article</th><th>Quantite</th><th>Source</th><th>Destination</th><th>Date</th></tr></thead>
+              <thead><tr><th>ID</th><th>Type</th><th>Article</th><th>Quantite</th><th>Date</th></tr></thead>
               <tbody>
                 {movements.map((movement) => (
                   <tr key={movement.id_mouvement}>
@@ -171,8 +170,6 @@ export default function Dashboard() {
                     <td><span className={`${styles.status} ${movement.type_mouvement === "ENTREE" ? styles.success : styles.neutral}`}>{movement.type_mouvement}</span></td>
                     <td>{movement.article || "-"}</td>
                     <td className={styles.quantity}>{movement.quantite}</td>
-                    <td>{movement.magasin_source_nom || "-"}</td>
-                    <td>{movement.magasin_destination_nom || "-"}</td>
                     <td className={styles.muted}>{formatDate(movement.date_mouvement)}</td>
                   </tr>
                 ))}

@@ -11,20 +11,17 @@ from apps.core.serializer_validators import (
     validate_not_future,
     validate_positive,
 )
-from apps.comptes.models import Users
 from apps.organisation.models import Departement, Direction
-from apps.stock.models import Magasin, Materiel
+from apps.stock.models import Materiel
 from .models import Affectation, Consommation, MouvementStock
 
-MOUVEMENT_TYPES = {"ENTREE", "SORTIE", "TRANSFERT", "AJUSTEMENT"}
+MOUVEMENT_TYPES = {"ENTREE", "SORTIE", "AJUSTEMENT"}
 AFFECTATION_STATUTS = {"ACTIVE", "RETOURNEE", "ANNULEE"}
 
 
 class MouvementStockSerializer(SanitizedModelSerializer):
     article = serializers.SerializerMethodField()
     article_type = serializers.SerializerMethodField()
-    magasin_source_nom = serializers.SerializerMethodField()
-    magasin_destination_nom = serializers.SerializerMethodField()
     fait_par_nom = serializers.CharField(source="fait_par.nom_users", read_only=True)
 
     class Meta:
@@ -46,21 +43,11 @@ class MouvementStockSerializer(SanitizedModelSerializer):
             return "Consommable"
         return "-"
 
-    def get_magasin_source_nom(self, obj):
-        if not obj.magasin_source:
-            return "-"
-        return obj.magasin_source.nom_magasin
-
-    def get_magasin_destination_nom(self, obj):
-        if not obj.magasin_destination:
-            return "-"
-        return obj.magasin_destination.nom_magasin
-
     def validate_type_mouvement(self, value):
         return validate_choice(
             value,
             MOUVEMENT_TYPES,
-            "Le type de mouvement doit etre ENTREE, SORTIE, TRANSFERT ou AJUSTEMENT.",
+            "Le type de mouvement doit etre ENTREE, SORTIE ou AJUSTEMENT.",
         )
 
     def validate_quantite(self, value):
@@ -75,8 +62,6 @@ class MouvementStockSerializer(SanitizedModelSerializer):
         materiel = attrs.get("id_materiel", getattr(self.instance, "id_materiel", None))
         consommable = attrs.get("id_consommable", getattr(self.instance, "id_consommable", None))
         quantite = attrs.get("quantite", getattr(self.instance, "quantite", None))
-        source = attrs.get("magasin_source", getattr(self.instance, "magasin_source", None))
-        destination = attrs.get("magasin_destination", getattr(self.instance, "magasin_destination", None))
 
         if type_mouvement:
             type_mouvement = type_mouvement.upper()
@@ -94,26 +79,10 @@ class MouvementStockSerializer(SanitizedModelSerializer):
                 {"quantite": "Un mouvement de materiel doit avoir une quantite egale a 1."}
             )
 
-        if type_mouvement == "TRANSFERT":
-            if not source or not destination:
-                raise serializers.ValidationError(
-                    "Un transfert doit avoir un magasin source et un magasin destination."
-                )
-            if source == destination:
-                raise serializers.ValidationError(
-                    "Le magasin source et le magasin destination doivent etre differents."
-                )
-        elif type_mouvement == "SORTIE" and not source:
-            raise serializers.ValidationError({"magasin_source": "Une sortie doit avoir un magasin source."})
-        elif type_mouvement == "ENTREE" and not destination:
-            raise serializers.ValidationError(
-                {"magasin_destination": "Une entree doit avoir un magasin destination."}
-            )
-
         if materiel:
-            self._validate_materiel_movement(materiel, type_mouvement, source)
+            self._validate_materiel_movement(materiel, type_mouvement)
         if consommable:
-            self._validate_consommable_movement(consommable, type_mouvement, quantite, source)
+            self._validate_consommable_movement(consommable, type_mouvement, quantite)
 
         return attrs
 
@@ -129,8 +98,6 @@ class MouvementStockSerializer(SanitizedModelSerializer):
             "id_consommable",
             "type_mouvement",
             "quantite",
-            "magasin_source",
-            "magasin_destination",
         }
         if stock_fields.intersection(validated_data):
             raise serializers.ValidationError(
@@ -138,32 +105,20 @@ class MouvementStockSerializer(SanitizedModelSerializer):
             )
         return super().update(instance, validated_data)
 
-    def _validate_materiel_movement(self, materiel, type_mouvement, source):
-        if type_mouvement in {"SORTIE", "TRANSFERT"} and source and materiel.id_magasin_id != source.id_magasin:
-            raise serializers.ValidationError(
-                {"magasin_source": "Le materiel n'est pas dans le magasin source indique."}
-            )
-        if type_mouvement in {"SORTIE", "TRANSFERT"} and materiel.statut_stock == Materiel.StatutStock.AFFECTE:
+    def _validate_materiel_movement(self, materiel, type_mouvement):
+        if type_mouvement == "SORTIE" and materiel.statut_stock == Materiel.StatutStock.AFFECTE:
             raise serializers.ValidationError(
                 {"id_materiel": "Le materiel est deja affecte et ne peut pas sortir du stock."}
             )
-
-    def _validate_consommable_movement(self, consommable, type_mouvement, quantite, source):
-        if type_mouvement in {"SORTIE", "TRANSFERT"} and source and consommable.id_magasin_id != source.id_magasin:
+        if type_mouvement == "SORTIE" and materiel.statut_stock == Materiel.StatutStock.HORS_STOCK:
             raise serializers.ValidationError(
-                {"magasin_source": "Le consommable n'est pas dans le magasin source indique."}
+                {"id_materiel": "Le materiel est deja hors stock."}
             )
-        if type_mouvement in {"SORTIE", "TRANSFERT"} and quantite and consommable.quantite_stock < Decimal(quantite):
+
+    def _validate_consommable_movement(self, consommable, type_mouvement, quantite):
+        if type_mouvement == "SORTIE" and quantite and consommable.quantite_stock < Decimal(quantite):
             raise serializers.ValidationError(
                 {"quantite": "Stock insuffisant pour ce mouvement."}
-            )
-        if (
-            type_mouvement == "TRANSFERT"
-            and quantite
-            and consommable.quantite_stock != Decimal(quantite)
-        ):
-            raise serializers.ValidationError(
-                {"quantite": "Le transfert partiel d'un consommable n'est pas encore supporte. Transferez toute la quantite de cette ligne."}
             )
 
     def _apply_movement(self, mouvement):
@@ -174,31 +129,22 @@ class MouvementStockSerializer(SanitizedModelSerializer):
 
     def _apply_materiel_movement(self, mouvement):
         materiel = mouvement.id_materiel
-        if mouvement.type_mouvement in {"ENTREE", "TRANSFERT"}:
-            materiel.id_magasin = mouvement.magasin_destination
+        if mouvement.type_mouvement in {"ENTREE", "AJUSTEMENT"}:
             materiel.statut_stock = Materiel.StatutStock.EN_STOCK
-            materiel.save(update_fields=["id_magasin", "statut_stock"])
         elif mouvement.type_mouvement == "SORTIE":
-            materiel.id_magasin = None
             materiel.statut_stock = Materiel.StatutStock.HORS_STOCK
-            materiel.save(update_fields=["id_magasin", "statut_stock"])
+        materiel.save(update_fields=["statut_stock"])
 
     def _apply_consommable_movement(self, mouvement):
         consommable = mouvement.id_consommable
         quantite = Decimal(mouvement.quantite)
         if mouvement.type_mouvement == "ENTREE":
             consommable.quantite_stock += quantite
-            consommable.id_magasin = mouvement.magasin_destination
-            consommable.save(update_fields=["quantite_stock", "id_magasin"])
         elif mouvement.type_mouvement == "SORTIE":
             consommable.quantite_stock -= quantite
-            consommable.save(update_fields=["quantite_stock"])
-        elif mouvement.type_mouvement == "TRANSFERT":
-            consommable.id_magasin = mouvement.magasin_destination
-            consommable.save(update_fields=["id_magasin"])
         elif mouvement.type_mouvement == "AJUSTEMENT":
             consommable.quantite_stock = quantite
-            consommable.save(update_fields=["quantite_stock"])
+        consommable.save(update_fields=["quantite_stock"])
 
 
 class AffectationSerializer(SanitizedModelSerializer):
@@ -225,8 +171,6 @@ class AffectationSerializer(SanitizedModelSerializer):
         model_by_type = {
             "DEPARTEMENT": (Departement, "id_departement", "nom_departement"),
             "DIRECTION": (Direction, "id_direction", "nom_direction"),
-            "UTILISATEUR": (Users, "id_users", "nom_users"),
-            "MAGASIN": (Magasin, "id_magasin", "nom_magasin"),
         }
         model_info = model_by_type.get(obj.entite_type)
         if not model_info or not obj.entite_id:
@@ -346,7 +290,7 @@ class AffectationSerializer(SanitizedModelSerializer):
             materiel.save(update_fields=["statut_stock"])
         elif not Affectation.objects.filter(id_materiel=materiel, statut="ACTIVE").exclude(pk=affectation.pk).exists():
             if materiel.statut_stock == Materiel.StatutStock.AFFECTE:
-                materiel.statut_stock = Materiel.StatutStock.EN_STOCK if materiel.id_magasin_id else Materiel.StatutStock.HORS_STOCK
+                materiel.statut_stock = Materiel.StatutStock.EN_STOCK
                 materiel.save(update_fields=["statut_stock"])
 
 

@@ -1,7 +1,7 @@
-
-from django.db import models
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.exceptions import ValidationError
+from django.db import models
+
 
 class Role(models.Model):
     class RoleCode(models.TextChoices):
@@ -20,7 +20,6 @@ class Role(models.Model):
 
     def __str__(self):
         return self.nom_role
-
 
 
 class UsersManager(BaseUserManager):
@@ -62,7 +61,6 @@ class Users(AbstractUser):
         GENERAL = "GENERAL", "Général"
         DEPARTEMENT = "DEPARTEMENT", "Département"
         DIRECTION = "DIRECTION", "Direction"
-        MAGASIN = "MAGASIN", "Magasin"
 
     id_users = models.AutoField(primary_key=True)
     username = None
@@ -76,13 +74,13 @@ class Users(AbstractUser):
         Role,
         on_delete=models.PROTECT,
         db_column="id_role",
-        related_name="users"
+        related_name="users",
     )
 
     scope_type = models.CharField(
         max_length=20,
         choices=ScopeType.choices,
-        default=ScopeType.GENERAL
+        default=ScopeType.GENERAL,
     )
 
     id_departement = models.ForeignKey(
@@ -91,7 +89,7 @@ class Users(AbstractUser):
         db_column="id_departement",
         blank=True,
         null=True,
-        related_name="users"
+        related_name="users",
     )
 
     id_direction = models.ForeignKey(
@@ -100,7 +98,7 @@ class Users(AbstractUser):
         db_column="id_direction",
         blank=True,
         null=True,
-        related_name="users"
+        related_name="users",
     )
 
     id_service = models.ForeignKey(
@@ -109,17 +107,9 @@ class Users(AbstractUser):
         db_column="id_service",
         blank=True,
         null=True,
-        related_name="users"
+        related_name="users",
     )
 
-    id_magasin = models.ForeignKey(
-        "stock.Magasin",
-        on_delete=models.SET_NULL,
-        db_column="id_magasin",
-        blank=True,
-        null=True,
-        related_name="users"
-    )
     @property
     def role_code(self):
         if self.id_role:
@@ -151,11 +141,8 @@ class Users(AbstractUser):
         if self.scope_type == self.ScopeType.DIRECTION and not self.id_direction:
             errors["id_direction"] = "La direction est obligatoire pour un scope DIRECTION."
 
-        if self.scope_type == self.ScopeType.MAGASIN and not self.id_magasin:
-            errors["id_magasin"] = "Le magasin est obligatoire pour un scope MAGASIN."
-
         if self.scope_type == self.ScopeType.GENERAL:
-            if self.id_departement or self.id_direction or self.id_service or self.id_magasin:
+            if self.id_departement or self.id_direction or self.id_service:
                 errors["scope_type"] = "Un utilisateur GENERAL ne doit pas avoir de périmètre précis."
 
         if self.id_role and self.id_role.code_role == Role.RoleCode.MAGASIN and self.scope_type == self.ScopeType.GENERAL:

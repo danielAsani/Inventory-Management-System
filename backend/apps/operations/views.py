@@ -13,8 +13,6 @@ class MouvementStockViewSet(ModelViewSet):
     queryset = MouvementStock.objects.select_related(
         "id_materiel",
         "id_consommable",
-        "magasin_source",
-        "magasin_destination",
         "fait_par",
     ).all()
     serializer_class = MouvementStockSerializer

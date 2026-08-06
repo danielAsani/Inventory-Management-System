@@ -9,7 +9,6 @@ class Inventaire(models.Model):
     class EntiteType(models.TextChoices):
         DEPARTEMENT = "DEPARTEMENT", "Département"
         DIRECTION = "DIRECTION", "Direction"
-        MAGASIN = "MAGASIN", "Magasin"
 
     class TypeInventaire(models.TextChoices):
         GENERAL = "GENERAL", "Général"

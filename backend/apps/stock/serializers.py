@@ -1,5 +1,6 @@
-from django.db import transaction
 from decimal import Decimal, ROUND_HALF_UP
+
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
@@ -9,70 +10,13 @@ from apps.core.serializer_validators import (
     validate_not_future,
     validate_not_negative,
     validate_unique_optional_text,
-    validate_unique_text,
 )
-from .models import Magasin, Materiel, Consommable
-
-
-class MagasinSerializer(SanitizedModelSerializer):
-    direction_nom = serializers.SerializerMethodField()
-    departement_nom = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Magasin
-        fields = [
-            "id_magasin",
-            "code_magasin",
-            "nom_magasin",
-            "id_direction",
-            "direction_nom",
-            "departement_nom",
-            "description_localisation",
-            "date_creation",
-            "statut",
-        ]
-        extra_kwargs = {
-            "code_magasin": {
-                "validators": [
-                    UniqueValidator(
-                        queryset=Magasin.objects.all(),
-                        message="Ce code magasin existe déjà.",
-                    )
-                ]
-            }
-        }
-
-    def get_direction(self, obj):
-        return obj.id_direction or getattr(obj.id_service, "id_direction", None)
-
-    def get_direction_nom(self, obj):
-        direction = self.get_direction(obj)
-        return direction.nom_direction if direction else "-"
-
-    def get_departement_nom(self, obj):
-        direction = self.get_direction(obj)
-        if not direction or not direction.id_departement_id:
-            return "-"
-        return direction.id_departement.nom_departement
-
-    def validate_code_magasin(self, value):
-        return validate_not_blank(value, "Le code du magasin ne peut pas être vide.")
-
-    def validate_nom_magasin(self, value):
-        value = validate_not_blank(value, "Le nom du magasin ne peut pas être vide.")
-        return validate_unique_text(
-            Magasin,
-            "nom_magasin",
-            value,
-            "Un magasin avec ce nom existe deja.",
-            self.instance,
-        )
+from .models import Consommable, Materiel
 
 
 class MaterielSerializer(SanitizedModelSerializer):
     categorie_nom = serializers.CharField(source="id_categorie.nom_categorie", read_only=True)
     famille_nom = serializers.CharField(source="id_categorie.id_famille.nom_famille", read_only=True)
-    magasin_nom = serializers.CharField(source="id_magasin.nom_magasin", read_only=True)
     fournisseur_nom = serializers.CharField(source="id_fournisseur.nom_fournisseur", read_only=True)
     quantite_creation = serializers.IntegerField(
         write_only=True,
@@ -95,7 +39,7 @@ class MaterielSerializer(SanitizedModelSerializer):
                 "validators": [
                     UniqueValidator(
                         queryset=Materiel.objects.all(),
-                        message="Ce code matériel existe déjà.",
+                        message="Ce code materiel existe deja.",
                     )
                 ]
             },
@@ -103,7 +47,7 @@ class MaterielSerializer(SanitizedModelSerializer):
                 "validators": [
                     UniqueValidator(
                         queryset=Materiel.objects.all(),
-                        message="Ce numéro de série existe déjà.",
+                        message="Ce numero de serie existe deja.",
                     )
                 ]
             },
@@ -111,7 +55,7 @@ class MaterielSerializer(SanitizedModelSerializer):
                 "validators": [
                     UniqueValidator(
                         queryset=Materiel.objects.all(),
-                        message="Ce code-barres existe déjà.",
+                        message="Ce code-barres existe deja.",
                     )
                 ]
             },
@@ -119,14 +63,14 @@ class MaterielSerializer(SanitizedModelSerializer):
                 "validators": [
                     UniqueValidator(
                         queryset=Materiel.objects.all(),
-                        message="Ce QR code existe déjà.",
+                        message="Ce QR code existe deja.",
                     )
                 ]
             },
         }
 
     def validate_code_materiel(self, value):
-        return validate_not_blank(value, "Le code du matériel ne peut pas être vide.")
+        return validate_not_blank(value, "Le code du materiel ne peut pas etre vide.")
 
     def validate_marque(self, value):
         if value is not None:
@@ -135,7 +79,7 @@ class MaterielSerializer(SanitizedModelSerializer):
 
     def validate_modele(self, value):
         if value is not None:
-            return validate_not_blank(value, "Le modèle ne peut pas contenir uniquement des espaces.")
+            return validate_not_blank(value, "Le modele ne peut pas contenir uniquement des espaces.")
         return value
 
     def validate_numero_serie(self, value):
@@ -148,13 +92,13 @@ class MaterielSerializer(SanitizedModelSerializer):
         )
 
     def validate_prix_achat(self, value):
-        return validate_not_negative(value, "Le prix d'achat ne peut pas être négatif.")
+        return validate_not_negative(value, "Le prix d'achat ne peut pas etre negatif.")
 
     def validate_duree_garantie_mois(self, value):
-        return validate_not_negative(value, "La durée de garantie ne peut pas être négative.")
+        return validate_not_negative(value, "La duree de garantie ne peut pas etre negative.")
 
     def validate_date_achat(self, value):
-        return validate_not_future(value, "La date d'achat ne peut pas être dans le futur.")
+        return validate_not_future(value, "La date d'achat ne peut pas etre dans le futur.")
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -163,8 +107,9 @@ class MaterielSerializer(SanitizedModelSerializer):
 
         if date_achat and garantie_fin and garantie_fin < date_achat:
             raise serializers.ValidationError(
-                {"garantie_fin": "La fin de garantie ne peut pas être avant la date d'achat."}
+                {"garantie_fin": "La fin de garantie ne peut pas etre avant la date d'achat."}
             )
+
         categorie = attrs.get("id_categorie", getattr(self.instance, "id_categorie", None))
         marque = attrs.get("marque", getattr(self.instance, "marque", None))
         modele = attrs.get("modele", getattr(self.instance, "modele", None))
@@ -192,9 +137,7 @@ class MaterielSerializer(SanitizedModelSerializer):
                 rounding=ROUND_HALF_UP,
             )
 
-        validated_data["statut_stock"] = (
-            Materiel.StatutStock.EN_STOCK if validated_data.get("id_magasin") else Materiel.StatutStock.HORS_STOCK
-        )
+        validated_data["statut_stock"] = Materiel.StatutStock.EN_STOCK
 
         first_material = None
         with transaction.atomic():
@@ -209,7 +152,6 @@ class ConsommableSerializer(SanitizedModelSerializer):
     categorie_nom = serializers.CharField(source="id_categorie.nom_categorie", read_only=True)
     famille_nom = serializers.CharField(source="id_categorie.id_famille.nom_famille", read_only=True)
     unite_nom = serializers.CharField(source="id_unite.nom_unite", read_only=True)
-    magasin_nom = serializers.CharField(source="id_magasin.nom_magasin", read_only=True)
 
     class Meta:
         model = Consommable
@@ -220,23 +162,23 @@ class ConsommableSerializer(SanitizedModelSerializer):
                 "validators": [
                     UniqueValidator(
                         queryset=Consommable.objects.all(),
-                        message="Ce code consommable existe déjà.",
+                        message="Ce code consommable existe deja.",
                     )
                 ]
             }
         }
 
     def validate_code_consommable(self, value):
-        return validate_not_blank(value, "Le code du consommable ne peut pas être vide.")
+        return validate_not_blank(value, "Le code du consommable ne peut pas etre vide.")
 
     def validate_nom_consommable(self, value):
-        return validate_not_blank(value, "Le nom du consommable ne peut pas être vide.")
+        return validate_not_blank(value, "Le nom du consommable ne peut pas etre vide.")
 
     def validate_quantite_stock(self, value):
-        return validate_not_negative(value, "La quantité en stock ne peut pas être négative.")
+        return validate_not_negative(value, "La quantite en stock ne peut pas etre negative.")
 
     def validate_seuil_alerte(self, value):
-        return validate_not_negative(value, "Le seuil d'alerte ne peut pas être négatif.")
+        return validate_not_negative(value, "Le seuil d'alerte ne peut pas etre negatif.")
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

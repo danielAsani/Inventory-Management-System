@@ -24,7 +24,7 @@ function getLabelData(item, config) {
   const title = cleanText(item[labelConfig.titleField || config.idField]);
   const subtitle = joinValues(...(labelConfig.subtitleFields || []).map((field) => item[field]));
   const category = cleanText(item[labelConfig.categoryField] || item.categorie_nom || item.famille_nom);
-  const location = cleanText(item[labelConfig.locationField] || item.magasin_nom || item.etat);
+  const location = cleanText(item[labelConfig.locationField] || item.etat);
 
   return {
     title,

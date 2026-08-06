@@ -7,8 +7,8 @@ from apps.core.permissions import READ_ALL_ROLES, RoleBasedPermission
 from apps.organisation.models import Departement, Direction
 from apps.operations.models import MouvementStock
 from apps.operations.serializers import MouvementStockSerializer
-from apps.stock.models import Consommable, Magasin, Materiel
-from apps.stock.views import scoped_magasin_queryset, scoped_stock_queryset
+from apps.stock.models import Consommable, Materiel
+from apps.stock.views import scoped_stock_queryset
 
 
 class DashboardStatsView(APIView):
@@ -22,20 +22,15 @@ class DashboardStatsView(APIView):
             include_affectations=True,
         )
         consommables = scoped_stock_queryset(Consommable.objects.all(), request.user)
-        magasins = scoped_magasin_queryset(Magasin.objects.all(), request.user)
 
         stock_total = consommables.aggregate(total=Sum("quantite_stock"))["total"] or 0
         recent_movements = MouvementStock.objects.select_related(
             "id_materiel",
             "id_consommable",
-            "magasin_source",
-            "magasin_destination",
             "fait_par",
         ).filter(
             Q(id_materiel__in=materiels)
             | Q(id_consommable__in=consommables)
-            | Q(magasin_source__in=magasins)
-            | Q(magasin_destination__in=magasins)
         ).order_by("-date_mouvement", "-id_mouvement")[:8]
 
         stock_alerts = consommables.filter(
@@ -52,7 +47,6 @@ class DashboardStatsView(APIView):
                     "fournisseurs_total": Fournisseur.objects.count(),
                     "departements_total": Departement.objects.count(),
                     "directions_total": Direction.objects.count(),
-                    "magasins_total": magasins.count(),
                     "materiels_total": materiels.count(),
                     "consommables_total": consommables.count(),
                     "references_total": materiels.count() + consommables.count(),

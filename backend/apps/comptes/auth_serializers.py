@@ -33,7 +33,6 @@ class UserProfileSerializer(SanitizedModelSerializer):
             "perimetre",
             "id_departement",
             "id_direction",
-            "id_magasin",
         ]
 
     def get_role(self, obj):
@@ -51,8 +50,6 @@ class UserProfileSerializer(SanitizedModelSerializer):
             return f"Departement: {obj.id_departement.nom_departement}"
         if obj.scope_type == Users.ScopeType.DIRECTION and obj.id_direction:
             return f"Direction: {obj.id_direction.nom_direction}"
-        if obj.scope_type == Users.ScopeType.MAGASIN and obj.id_magasin:
-            return f"Magasin: {obj.id_magasin.nom_magasin}"
         return obj.scope_type or "-"
 
 

@@ -5,47 +5,6 @@ from django.utils import timezone
 from apps.core.code_generation import generate_prefixed_code
 
 
-class Magasin(models.Model):
-    id_magasin = models.AutoField(primary_key=True)
-
-    code_magasin = models.CharField(max_length=20, unique=True)
-    nom_magasin = models.CharField(max_length=100)
-
-    id_service = models.ForeignKey(
-        "organisation.Service",
-        on_delete=models.SET_NULL,
-        db_column="id_service",
-        blank=True,
-        null=True,
-        related_name="magasins",
-    )
-
-    id_direction = models.ForeignKey(
-        "organisation.Direction",
-        on_delete=models.SET_NULL,
-        db_column="id_direction",
-        blank=True,
-        null=True,
-        related_name="magasins",
-    )
-
-    description_localisation = models.CharField(max_length=500, blank=True, null=True)
-
-    date_creation = models.DateField(default=timezone.localdate)
-    statut = models.BooleanField(default=True)
-
-    class Meta:
-        db_table = "magasin"
-
-    def save(self, *args, **kwargs):
-        if self.code_magasin:
-            self.code_magasin = self.code_magasin.upper()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.nom_magasin
-
-
 class Materiel(models.Model):
     class EtatMateriel(models.TextChoices):
         NEUF = "NEUF", "Neuf"
@@ -67,15 +26,6 @@ class Materiel(models.Model):
         "catalogue.Categorie",
         on_delete=models.PROTECT,
         db_column="id_categorie",
-        related_name="materiels",
-    )
-
-    id_magasin = models.ForeignKey(
-        Magasin,
-        on_delete=models.SET_NULL,
-        db_column="id_magasin",
-        blank=True,
-        null=True,
         related_name="materiels",
     )
 
@@ -168,15 +118,6 @@ class Consommable(models.Model):
         "catalogue.UniteMesure",
         on_delete=models.PROTECT,
         db_column="id_unite",
-        related_name="consommables",
-    )
-
-    id_magasin = models.ForeignKey(
-        Magasin,
-        on_delete=models.SET_NULL,
-        db_column="id_magasin",
-        blank=True,
-        null=True,
         related_name="consommables",
     )
 

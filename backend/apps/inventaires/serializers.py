@@ -7,7 +7,6 @@ from apps.core.serializer_validators import (
     validate_not_negative,
 )
 from apps.organisation.models import Departement, Direction
-from apps.stock.models import Magasin
 from .models import Inventaire, InventaireDetail
 
 INVENTAIRE_STATUTS = {"EN_COURS", "TERMINE", "ANNULE"}
@@ -32,7 +31,6 @@ class InventaireSerializer(SanitizedModelSerializer):
         model_by_type = {
             "DEPARTEMENT": (Departement, "id_departement", "nom_departement"),
             "DIRECTION": (Direction, "id_direction", "nom_direction"),
-            "MAGASIN": (Magasin, "id_magasin", "nom_magasin"),
         }
         model_info = model_by_type.get(obj.entite_type)
         if not model_info or not obj.entite_id:

@@ -1,4 +1,4 @@
-import { Archive, Boxes, Building2, ClipboardList, FileText, LayoutDashboard, MapPin, PackageSearch, Repeat2, Tags, UserCheck, Users, Wrench } from "lucide-react";
+import { Archive, Boxes, Building2, ClipboardList, FileText, LayoutDashboard, PackageSearch, Repeat2, Tags, UserCheck, Users, Wrench } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import logo from "../../../public/logo.png";
 import { ROLES } from "../../utils/permissions";
@@ -19,7 +19,6 @@ const mainNavigation = [
 ];
 
 const organizationNavigation = [
-  { label: "Magasins", icon: MapPin, to: "/stock/magasins", roles: adminOnly },
   { label: "Departements", icon: Building2, to: "/organisation/departements", roles: adminOnly },
   { label: "Directions", icon: Building2, to: "/organisation/directions", roles: adminOnly },
 ];
